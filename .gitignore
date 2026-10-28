@@ -1,0 +1,12 @@
+# build outputs
+dist/
+target/
+*.pdb
+*.ilk
+*.obj
+*.exp
+*.lib
+
+# local logs / temp
+*.log
+.temp/

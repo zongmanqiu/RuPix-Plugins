@@ -1,0 +1,62 @@
+[
+  {
+    "id": "com.rupix.doodle",
+    "name": "图像涂鸦",
+    "version": "0.1.0",
+    "protocol": 1,
+    "kind": "editor",
+    "description": "独立窗口涂鸦：预览上画，应用时按原图重绘",
+    "capabilities": [
+      "image.read",
+      "image.write",
+      "ui.window"
+    ],
+    "released": "2026-10-28",
+    "author": "RuPix",
+    "license": "MIT",
+    "file": "com.rupix.doodle_0.1.0.zip",
+    "size": 121473,
+    "sha256": "345112cb6df7570f96b5fcf81696c9edd4dcb65603b2a2675000c4048733da82",
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/com.rupix.doodle_0.1.0/com.rupix.doodle_0.1.0.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/com.rupix.doodle_0.1.0/com.rupix.doodle_0.1.0.zip"
+  },
+  {
+    "id": "com.rupix.echo",
+    "name": "回显诊断",
+    "version": "0.1.1",
+    "protocol": 1,
+    "kind": "command",
+    "description": "把宿主请求原样回显，用来验证插件进程/管道/协议链路；齿轮里可切换「回显转大写」",
+    "capabilities": [
+      "settings.read",
+      "settings.write"
+    ],
+    "released": "2026-10-28",
+    "author": "RuPix",
+    "license": "MIT",
+    "file": "com.rupix.echo_0.1.1.zip",
+    "size": 82601,
+    "sha256": "807d1b7c4d20b4d8a9cdc427145eabbb39ba0f230e58d8b2793b3517dacd79f9",
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/com.rupix.echo_0.1.1/com.rupix.echo_0.1.1.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/com.rupix.echo_0.1.1/com.rupix.echo_0.1.1.zip"
+  },
+  {
+    "id": "com.rupix.ocr",
+    "name": "Windows OCR",
+    "version": "0.2.0",
+    "protocol": 1,
+    "kind": "command",
+    "description": "用 Windows 本地 OCR 引擎识别当前图片文字（需系统已装语言包）",
+    "capabilities": [
+      "image.read"
+    ],
+    "released": "2026-10-28",
+    "author": "RuPix",
+    "license": "MIT",
+    "file": "com.rupix.ocr_0.2.0.zip",
+    "size": 120289,
+    "sha256": "4ad79491852b80072c4319f3bf4b1180fe37b3b9fa676f0698e4b00a095ed353",
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/com.rupix.ocr_0.2.0/com.rupix.ocr_0.2.0.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/com.rupix.ocr_0.2.0/com.rupix.ocr_0.2.0.zip"
+  }
+]

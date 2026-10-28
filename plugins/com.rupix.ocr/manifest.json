@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "com.rupix.ocr",
+  "name": "Windows OCR",
+  "version": "0.2.0",
+  "protocol": 1,
+  "min_host": "0.1.0",
+  "kind": "command",
+  "entry": "ocr.exe",
+  "capabilities": ["image.read"],
+  "platforms": ["windows-x64"],
+  "description": "用 Windows 本地 OCR 引擎识别当前图片文字（需系统已装语言包）",
+  "author": "RuPix",
+  "license": "MIT",
+  "released": "2026-10-28"
+}

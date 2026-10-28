@@ -1,0 +1,22 @@
+[package]
+name = "rupix-plugin-ocr"
+version = "0.2.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde_json = "1"
+windows = { version = "0.62", features = [
+    "Foundation",
+    "Globalization",
+    "Graphics_Imaging",
+    "Media_Ocr",
+    "Storage",
+    "Storage_Streams",
+    "Win32_System_WinRT"
+] }
+pollster = "0.4"
+
+[profile.release]
+opt-level = "z"
+strip = true

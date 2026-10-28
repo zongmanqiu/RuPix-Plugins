@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "id": "com.rupix.echo",
+  "name": "回显诊断",
+  "version": "0.1.1",
+  "protocol": 1,
+  "min_host": "0.1.0",
+  "kind": "command",
+  "entry": "echo.exe",
+  "capabilities": ["settings.read", "settings.write"],
+  "settings_ui": true,
+  "platforms": ["windows-x64"],
+  "description": "把宿主请求原样回显，用来验证插件进程/管道/协议链路；齿轮里可切换「回显转大写」",
+  "author": "RuPix",
+  "license": "MIT",
+  "released": "2026-10-28"
+}
