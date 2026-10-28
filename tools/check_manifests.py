@@ -57,8 +57,11 @@ def check_manifest(path: Path, dir_name: str, seen: set[str], errors: list[str])
 
     if data.get("schema") != 1:
         fail(errors, path, "schema must be 1")
-    if data.get("protocol") != 1:
-        fail(errors, path, "protocol must be 1")
+    # 宿主支持的协议区间（与宿主 core/ext.rs 的 MIN..=MAX 对齐；只增不改，下界永不抬）。
+    protocol_min, protocol_max = 1, 1
+    protocol = data.get("protocol")
+    if not isinstance(protocol, int) or not (protocol_min <= protocol <= protocol_max):
+        fail(errors, path, f"protocol must be within {protocol_min}..={protocol_max}")
 
     pid = req_str("id")
     if pid:

@@ -70,6 +70,7 @@ def main() -> int:
                 "name": meta.get("name", pid),
                 "version": ver,
                 "protocol": meta.get("protocol", 1),
+                "min_host": meta.get("min_host", ""),
                 "kind": meta.get("kind", "command"),
                 "description": meta.get("description", ""),
                 "capabilities": meta.get("capabilities", []),

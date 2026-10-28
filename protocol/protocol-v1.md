@@ -17,7 +17,7 @@
 
 ```text
 --rupix-pipe <pipe-name>
---rupix-protocol 1
+--rupix-protocol <插件声明的 protocol>（当前 1）
 ```
 
 插件必须解析这两个参数；未知参数忽略。
@@ -67,7 +67,8 @@
 {"protocol": 1, "ok": true, "settings": {"echo.upper": "1"}}
 ```
 
-- `protocol` 必须等于 1。
+- `protocol` 必须落在宿主支持区间（当前 `1..=1`）。宿主按**插件声明的版本**握手；
+  旧版插件在区间内继续可跑（宿主升级后不要求插件重编）。
 - `ok=false` 必须有 `error`。
 - `text` / `image` 可同时存在。
 - `settings` 可选：只有声明 `settings.write` 的插件回传才会被宿主落盘
