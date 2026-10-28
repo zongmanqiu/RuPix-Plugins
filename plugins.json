@@ -2,7 +2,7 @@
   {
     "id": "com.rupix.doodle",
     "name": "图像涂鸦",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "protocol": 1,
     "min_host": "0.1.0",
     "kind": "editor",
@@ -15,11 +15,11 @@
     "released": "2026-10-28",
     "author": "RuPix",
     "license": "MIT",
-    "file": "com.rupix.doodle_0.1.0.zip",
-    "size": 121473,
-    "sha256": "345112cb6df7570f96b5fcf81696c9edd4dcb65603b2a2675000c4048733da82",
-    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/com.rupix.doodle_0.1.0/com.rupix.doodle_0.1.0.zip",
-    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/com.rupix.doodle_0.1.0/com.rupix.doodle_0.1.0.zip"
+    "file": "com.rupix.doodle_0.1.1.zip",
+    "size": 121926,
+    "sha256": "df7c511aa259cb5da038d570e347f639a6c4b22b952b8fad097efa211f947a72",
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/com.rupix.doodle_0.1.1/com.rupix.doodle_0.1.1.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/com.rupix.doodle_0.1.1/com.rupix.doodle_0.1.1.zip"
   },
   {
     "id": "com.rupix.echo",

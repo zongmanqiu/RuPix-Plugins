@@ -9,11 +9,12 @@
 use windows::core::w;
 use windows::Win32::Foundation::{COLORREF, HINSTANCE, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
-    BeginPaint, CreateFontW, CreateSolidBrush, DeleteObject, DrawTextW, EndPaint, FillRect,
-    FrameRect, InvalidateRect, SelectObject, SetBkMode, SetTextColor, StretchDIBits, BITMAPINFO,
+    BeginPaint, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, CreateFontW,
+    CreateSolidBrush, DeleteDC, DeleteObject, DrawTextW, EndPaint, FillRect, FrameRect,
+    InvalidateRect, SelectObject, SetBkMode, SetTextColor, StretchDIBits, BITMAPINFO,
     BITMAPINFOHEADER, CLEARTYPE_QUALITY, CLIP_DEFAULT_PRECIS, DIB_RGB_COLORS, DT_CENTER,
     DT_SINGLELINE, DT_VCENTER, DEFAULT_CHARSET, DEFAULT_PITCH, FF_DONTCARE, FW_NORMAL, HBRUSH,
-    HDC, HFONT, HGDIOBJ, OUT_TT_PRECIS, PAINTSTRUCT, RGBQUAD, SRCCOPY,
+    HBITMAP, HDC, HFONT, HGDIOBJ, OUT_TT_PRECIS, PAINTSTRUCT, RGBQUAD, SRCCOPY,
     TRANSPARENT,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
@@ -26,7 +27,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     RegisterClassExW, SetForegroundWindow, SetWindowLongPtrW, ShowWindow, TranslateMessage,
     CS_HREDRAW, CS_VREDRAW, CREATESTRUCTW, GWLP_USERDATA, IDC_ARROW, MINMAXINFO, MSG,
     SW_SHOW, WM_CLOSE, WM_CREATE, WM_DESTROY, WM_GETMINMAXINFO, WM_KEYDOWN,
-    WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCDESTROY, WM_PAINT, WM_SIZE,
+    WM_ERASEBKGND, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCDESTROY, WM_PAINT, WM_SIZE,
     WNDCLASSEXW, WS_OVERLAPPEDWINDOW,
 };
 
@@ -176,6 +177,9 @@ struct State {
     off_x: i32,
     off_y: i32,
     preview: Vec<u8>,
+    /// 已提交的历史（base + history）合成结果；拖动时只在这张图上叠当前笔画，
+    /// 不再每次重放全部历史。
+    preview_committed: Vec<u8>,
     preview_base: Vec<u8>,
     // Editing state.
     history: Vec<Action>,
@@ -187,12 +191,23 @@ struct State {
     result: Option<Outcome>,
     brushes: Brushes,
     font: HFONT,
+    /// 双缓冲的后台 DC / 位图：只在窗口尺寸变化时重建，不每帧分配。
+    back_dc: HDC,
+    back_bmp: HBITMAP,
+    back_w: i32,
+    back_h: i32,
 }
 
 impl Drop for State {
     fn drop(&mut self) {
         unsafe {
             let _ = DeleteObject(HGDIOBJ(self.font.0));
+            if !self.back_bmp.0.is_null() {
+                let _ = DeleteObject(HGDIOBJ(self.back_bmp.0));
+            }
+            if !self.back_dc.0.is_null() {
+                let _ = DeleteDC(self.back_dc);
+            }
         }
     }
 }
@@ -323,6 +338,7 @@ impl State {
             off_x: 0,
             off_y: 0,
             preview: Vec::new(),
+            preview_committed: Vec::new(),
             preview_base: Vec::new(),
             history: Vec::new(),
             cur: None,
@@ -333,6 +349,10 @@ impl State {
             result: None,
             brushes,
             font,
+            back_dc: HDC(std::ptr::null_mut()),
+            back_bmp: HBITMAP(std::ptr::null_mut()),
+            back_w: 0,
+            back_h: 0,
         })
     }
 
@@ -357,21 +377,20 @@ impl State {
         );
         self.off_x = self.layout.canvas.x + (self.layout.canvas.w - pw as i32) / 2;
         self.off_y = self.layout.canvas.y + (self.layout.canvas.h - ph as i32) / 2;
-        self.preview = self.preview_base.clone();
+        self.rebuild_committed();
     }
 
-    /// Rebuild the preview buffer: scaled base + all strokes (plus the stroke
-    /// currently being drawn) with the same rasterizer used for apply.
-    fn compose_preview(&mut self) {
+    /// 重放全部历史 → `preview_committed`。只在尺寸变化 / 撤销 / 清空时跑，
+    /// 不在每一帧、每一次鼠标移动里跑。
+    fn replay_history(&mut self) {
         let stride = (self.pw * 4) as usize;
         let scale = self.scale;
-        let mut buf = self.preview_base.clone();
         for action in &self.history {
             match action {
                 Action::Draw(stroke) => {
                     let scaled = scale_stroke(stroke, scale);
                     draw_stroke(
-                        &mut buf,
+                        &mut self.preview_committed,
                         Some(&self.preview_base),
                         stride,
                         self.pw,
@@ -379,11 +398,30 @@ impl State {
                         &scaled,
                     );
                 }
-                Action::Clear => buf.copy_from_slice(&self.preview_base),
+                Action::Clear => self.preview_committed.copy_from_slice(&self.preview_base),
             }
         }
-        if let Some(stroke) = self.cur.clone() {
-            let scaled = scale_stroke(&stroke, scale);
+    }
+
+    fn rebuild_committed(&mut self) {
+        if self.pw == 0 || self.ph == 0 {
+            return;
+        }
+        self.preview_committed = self.preview_base.clone();
+        self.replay_history();
+        self.preview = self.preview_committed.clone();
+    }
+
+    /// 预览 = 已提交历史 + **当前这一笔**。当前笔画每次从头叠一次（避免逐点
+    /// 反复混合产生接缝），历史不再重放。
+    fn compose_preview(&mut self) {
+        if self.pw == 0 || self.ph == 0 {
+            return;
+        }
+        let stride = (self.pw * 4) as usize;
+        let mut buf = self.preview_committed.clone();
+        if let Some(stroke) = &self.cur {
+            let scaled = scale_stroke(stroke, self.scale);
             draw_stroke(
                 &mut buf,
                 Some(&self.preview_base),
@@ -414,6 +452,7 @@ impl State {
                 color: self.color,
                 erase: !self.pencil,
             });
+            self.compose_preview();
             return true;
         }
         if l.pencil.contains(x, y) {
@@ -430,35 +469,56 @@ impl State {
         } else if l.undo.contains(x, y) {
             if self.cur.is_none() {
                 self.history.pop();
+                self.rebuild_committed();
             }
         } else if l.clear.contains(x, y) && self.cur.is_none() {
             self.history.push(Action::Clear);
+            self.rebuild_committed();
         }
         false
     }
 
-    fn on_drag(&mut self, x: i32, y: i32) {
+    /// 返回是否真的新增了一个点（没有新增就不必重绘）。
+    fn on_drag(&mut self, x: i32, y: i32) -> bool {
         if self.cur.is_none() {
-            return;
+            return false;
         }
         let (fx, fy) = self.to_image_coords(x, y);
-        let Some(stroke) = self.cur.as_mut() else {
-            return;
-        };
-        if let Some(last) = stroke.points.last() {
-            let dx = fx - last.0;
-            let dy = fy - last.1;
-            if dx * dx + dy * dy < 0.25 {
-                return;
+        {
+            let Some(stroke) = self.cur.as_mut() else {
+                return false;
+            };
+            if let Some(last) = stroke.points.last() {
+                let dx = fx - last.0;
+                let dy = fy - last.1;
+                if dx * dx + dy * dy < 0.25 {
+                    return false;
+                }
             }
+            stroke.points.push((fx, fy));
         }
-        stroke.points.push((fx, fy));
+        self.compose_preview();
+        true
     }
 
     fn finish_stroke(&mut self) {
-        if let Some(stroke) = self.cur.take() {
-            self.history.push(Action::Draw(stroke));
+        let Some(stroke) = self.cur.take() else {
+            return;
+        };
+        if self.pw > 0 && self.ph > 0 {
+            let stride = (self.pw * 4) as usize;
+            let scaled = scale_stroke(&stroke, self.scale);
+            draw_stroke(
+                &mut self.preview_committed,
+                Some(&self.preview_base),
+                stride,
+                self.pw,
+                self.ph,
+                &scaled,
+            );
+            self.preview = self.preview_committed.clone();
         }
+        self.history.push(Action::Draw(stroke));
     }
 
     fn apply(&mut self, hwnd: HWND) {
@@ -533,6 +593,8 @@ unsafe extern "system" fn wnd_proc(
             }
             LRESULT(0)
         }
+        // 整窗每帧都由 WM_PAINT 自己画满：告诉系统别再擦背景，省一次全窗刷新。
+        WM_ERASEBKGND => LRESULT(1),
         WM_PAINT => {
             if let Some(ptr) = state_of(hwnd) {
                 paint(hwnd, &mut *ptr);
@@ -551,8 +613,10 @@ unsafe extern "system" fn wnd_proc(
         WM_MOUSEMOVE => {
             if (wparam.0 & MK_LBUTTON) != 0 {
                 if let Some(ptr) = state_of(hwnd) {
-                    (*ptr).on_drag(x_of(lparam), y_of(lparam));
-                    let _ = InvalidateRect(Some(hwnd), None, false);
+                    // 只有真的新增了采样点才重绘；光标在同一像素里抖不再刷整窗。
+                    if (*ptr).on_drag(x_of(lparam), y_of(lparam)) {
+                        let _ = InvalidateRect(Some(hwnd), None, false);
+                    }
                 }
             }
             LRESULT(0)
@@ -576,6 +640,7 @@ unsafe extern "system" fn wnd_proc(
                 } else if key == 'Z' as u32 && ctrl {
                     if (*ptr).cur.is_none() {
                         (*ptr).history.pop();
+                        (*ptr).rebuild_committed();
                     }
                     let _ = InvalidateRect(Some(hwnd), None, false);
                 }
@@ -601,11 +666,45 @@ unsafe fn paint(hwnd: HWND, state: &mut State) {
     let hdc = BeginPaint(hwnd, &mut ps);
     let mut rc = RECT::default();
     let _ = GetClientRect(hwnd, &mut rc);
-    FillRect(hdc, &rc, state.brushes.toolbar);
+    let w = rc.right - rc.left;
+    let h = rc.bottom - rc.top;
+    if w <= 0 || h <= 0 {
+        let _ = EndPaint(hwnd, &ps);
+        return;
+    }
 
+    // 双缓冲：所有 GDI 先画进后台 DC，最后一次 BitBlt 上屏。直接画屏幕 DC 会在
+    // 拖动时看到"先擦底色、再贴图、最后画工具栏"的中间帧——就是用户报的闪烁。
+    // 后台位图只在尺寸变化时重建，拖动期间零分配。
+    if state.back_w != w
+        || state.back_h != h
+        || state.back_dc.0.is_null()
+        || state.back_bmp.0.is_null()
+    {
+        if !state.back_bmp.0.is_null() {
+            let _ = DeleteObject(HGDIOBJ(state.back_bmp.0));
+            state.back_bmp = HBITMAP(std::ptr::null_mut());
+        }
+        if !state.back_dc.0.is_null() {
+            let _ = DeleteDC(state.back_dc);
+            state.back_dc = HDC(std::ptr::null_mut());
+        }
+        state.back_dc = CreateCompatibleDC(Some(hdc));
+        state.back_bmp = CreateCompatibleBitmap(hdc, w, h);
+        state.back_w = w;
+        state.back_h = h;
+    }
+    let use_mem = !state.back_dc.0.is_null() && !state.back_bmp.0.is_null();
+    let target = if use_mem { state.back_dc } else { hdc };
+    let old = if use_mem {
+        SelectObject(state.back_dc, HGDIOBJ(state.back_bmp.0))
+    } else {
+        HGDIOBJ(std::ptr::null_mut())
+    };
+
+    FillRect(target, &rc, state.brushes.toolbar);
     if state.pw > 0 {
-        FillRect(hdc, &rc_of(&state.layout.canvas), state.brushes.canvas);
-        state.compose_preview();
+        FillRect(target, &rc_of(&state.layout.canvas), state.brushes.canvas);
         let bmi = BITMAPINFO {
             bmiHeader: BITMAPINFOHEADER {
                 biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
@@ -620,7 +719,7 @@ unsafe fn paint(hwnd: HWND, state: &mut State) {
             bmiColors: [RGBQUAD::default()],
         };
         StretchDIBits(
-            hdc,
+            target,
             state.off_x,
             state.off_y,
             state.pw as i32,
@@ -635,7 +734,12 @@ unsafe fn paint(hwnd: HWND, state: &mut State) {
             SRCCOPY,
         );
     }
-    draw_controls(hdc, state);
+    draw_controls(target, state);
+
+    if use_mem {
+        let _ = BitBlt(hdc, 0, 0, w, h, Some(state.back_dc), 0, 0, SRCCOPY);
+        SelectObject(state.back_dc, old);
+    }
     let _ = EndPaint(hwnd, &ps);
 }
 

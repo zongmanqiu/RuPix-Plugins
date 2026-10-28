@@ -27,7 +27,7 @@
 
 由根 `build.ps1` 调用本目录 `build.ps1`：clippy `-D warnings` → cargo test →
 release 构建，产物落 `<workspace>/.temp/plugin-dist/com.rupix.doodle/`，并打包成
-`.build/docs/com.rupix.doodle_0.1.0.zip`。
+`.build/docs/com.rupix.doodle_<version>.zip`（版本见 `manifest.json`）。
 
 ## 无头单测
 

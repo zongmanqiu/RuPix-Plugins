@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "com.rupix.doodle",
   "name": "图像涂鸦",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "protocol": 1,
   "min_host": "0.1.0",
   "kind": "editor",
