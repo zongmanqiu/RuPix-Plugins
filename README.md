@@ -1,6 +1,7 @@
 # RuPix 插件仓库
 
-> **仓库入口**：[**Gitee**](https://gitee.com/qiuzongman/RuPix-Plugins)（主源）| [**GitHub**](https://github.com/zongmanqiu/RuPix-Plugins)（镜像）
+> **仓库入口**：[**Gitee**](https://gitee.com/qiuzongman/RuPix-Plugins) 
+| [**GitHub**](https://github.com/zongmanqiu/RuPix-Plugins)
 
 ## 发布插件
 
