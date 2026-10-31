@@ -7,7 +7,7 @@
 
 1. **改版本**：`plugins/<id>/manifest.json` 的 `version` 递增（只增不回退；
    语义化不强制，但同一版本号不许换内容——已发布资产按 tag 冻结）。
-2. **构建**：根 `build.ps1` 全绿（三条门禁 + 各插件单测）。
+2. **构建**：根 `build.ps1` 全绿（四条门禁 + 各插件单测）。
 3. **产出**：`../.build/docs/<id>_<ver>.zip` 与 `plugins.json`（两份清单会同时更新：
    `.build/docs/` 里给宿主用，仓根那份入库给源码读者看）。ZIP 内除 `manifest.json` + 入口外，
    还带插件自己的 `README.md` / `LICENSE`、生成的 `LICENSE-NOTICE.md`（许可与源码位置）与

@@ -1,15 +1,6 @@
 # RuPix 插件仓库
 
 > **仓库入口**：[**Gitee**](https://gitee.com/qiuzongman/RuPix-Plugins)（主源）| [**GitHub**](https://github.com/zongmanqiu/RuPix-Plugins)（镜像）
-> 两个镜像的默认分支都是 **`main`**；本地目录叫 `RuPix-Plugin/`（单数），远端仓库名是
-> **`RuPix-Plugins`（复数）**——单数名字的 raw 地址两个镜像都 404（实测，见 [`docs/pitfalls.md`](docs/pitfalls.md)）。
-
-RuPix 的非解码器扩展全部住在这里：插件是**独立进程**，通过
-`manifest.json` + 命名管道 / 共享内存与宿主通信，不进入宿主地址空间。
-宿主只做发现、启停、传参与收结果；插件自己管自己的依赖与界面。
-
-> 本仓库与解码器仓库是并列的独立源码区：
-> 解码器负责"文件字节 → RGBA"，插件负责"已上屏图片 / 路径 → 文本、编辑结果或动作"。
 
 ## 发布插件
 
@@ -37,13 +28,12 @@ RuPix 的非解码器扩展全部住在这里：插件是**独立进程**，通�
 
 ### 远端已发布的历史资产（旧 id）
 
-2026-11-01 实读两镜像的 tag 列表，三个名字一致：`com.rupix.doodle_0.1.0`、
-`com.rupix.echo_0.1.1`、`com.rupix.ocr_0.2.0`；远端 [`plugins.json`](plugins.json) 也还是那三枚
-（本仓在 2026-10-29 把 id 改成裸短名后**尚未推送**）。
+两镜像上的 tag 仍是三个旧名字：`com.rupix.doodle_0.1.0`、`com.rupix.echo_0.1.1`、
+`com.rupix.ocr_0.2.0`。这三枚**已从本仓源码移除**，不再构建、也不在清单里；
+**tag 与附件不撤**（撤对外资产是破坏性动作，老用户还要按老清单取包）。
 
-- 这三枚**已从本仓源码移除**，不再构建、不再随清单分发；**tag 与附件不撤**（撤对外资产是
-  破坏性动作，老用户还要按老清单取包）。
-- 下一次 `push` + 上传新资产之后，远端清单会指向 `checkup` / `scan`，那三枚只剩 tag 页可取。
+- 主源（Gitee）`main` 的 `plugins.json` 已经是上面表里这两枚；**镜像（GitHub）还没推**，
+  选了 GitHub 下载源的用户目前拿到的仍是旧清单。
 
 ## 安装
 
@@ -91,7 +81,7 @@ RuPix-Plugin/
 │  └─ README.md             插件一览
 ├─ protocol/                manifest / 请求响应 / 共享内存契约（正本）
 ├─ docs/                    贡献者长期文档（地图 docs/README.md）
-├─ tools/                   manifest / 许可证 / 文档三道门禁与清单生成器
+├─ tools/                   manifest / 许可证 / 秘密 / 文档四道门禁与清单生成器
 ├─ build.ps1                根构建入口（门禁 → 各插件 → 打包 + 清单）
 ├─ plugins.json             可下载清单（由 tools/make_catalog.py 生成，入库留档）
 ├─ 插件开发规范.md          协议与字段的正式说明
@@ -106,8 +96,8 @@ RuPix-Plugin/
 powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 ```
 
-构建会先跑三条门禁（`tools/check_manifests.py` / `check_licenses.py` / `check_docs.py`），
-再逐个调用插件自己的 `build.ps1`；编译中间产物落仓库外 `../.temp/plugin-target/`，
+构建会先跑四条门禁（`tools/check_manifests.py` / `check_licenses.py` / `check_secrets.py` /
+`check_docs.py`），再逐个调用插件自己的 `build.ps1`；编译中间产物落仓库外 `../.temp/plugin-target/`，
 发布暂存落 `../.temp/plugin-dist/`，打包产物与清单镜像到 `../.build/docs/`
 （源码目录里**不留** `target/` 与 ZIP）。命令、门禁顺序与故障排查见
 [`docs/building.md`](docs/building.md)。
