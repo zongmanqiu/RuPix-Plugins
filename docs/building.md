@@ -43,8 +43,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File plugins/checkup/build.ps1
 
 ## 4. 加一枚插件
 
-1. 建 `plugins/<id>/`：`manifest.json` + 入口源码 + `build.ps1` + `LICENSE` + `README.md`。
-2. `manifest.json` 的 `id` 必须**等于目录名**（门禁会查），入口必须是目录内相对路径的 `.exe`。
+1. 建 `plugins/<id>/`：`manifest.json` + 入口源码 + `build.ps1` + `LICENSE` + `README.md` + `HISTORY.md`。
+2. `manifest.json` 的 `id` 必须**等于目录名**（门禁会查），入口必须是目录内相对路径的 `.exe`；
+   `HISTORY.md` 的首条版本必须等于 manifest 的 `version`（`check_docs.py` 第 5 查会判）。
 3. 如果声明了 `settings`，必须同时声明 `settings.read` + `settings.write`
    （`settings_ui` 那条老路与它二选一）。
 4. 引入任何第三方依赖前先读 [`licensing.md`](licensing.md)：进不了白名单＝判不采用。

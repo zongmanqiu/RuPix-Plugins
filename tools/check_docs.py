@@ -2,13 +2,16 @@
 # -*- coding: utf-8 -*-
 """Documentation gate: links resolve, every doc is registered, no local paths.
 
-Four questions, all mechanical (no semantic guessing):
+Five questions, all mechanical (no semantic guessing):
 
 1. Every relative markdown link in the tracked docs points at a file that exists.
 2. Every `.md` in the repo root / docs/ has a row in DOCS_MANIFEST.md.
 3. No absolute local path (drive letter or /home/…) leaked into a doc.
 4. The README "发布插件" table matches plugins.json row for row (id set, version,
    kind, exact bytes, release date, both mirror download URLs).
+5. Every plugin directory ships a `HISTORY.md` whose first entry is that plugin's
+   current version and release date — and its entries carry no release-progress
+   status (that truth lives in `plugins.json` only).
 
 Exit codes: 0 = clean; 1 = violation, or the gate could not see anything to check.
 
@@ -176,12 +179,64 @@ def check_release_table(readme: Path, catalog_path: Path) -> list[str]:
     return bad
 
 
+RELEASE_WORDS = ("待上传", "未发布", "release tag", "发布包已生成", "等待上传")
+
+
+def check_plugin_history(plugins_dir: Path) -> list[str]:
+    """每枚插件目录都要有 `HISTORY.md`，且首条版本 = manifest 的 `version`。
+
+    ★ 为什么要门禁判而不是写在文档里：这格曾经"没有理由地缺着"——发版的人要的就是这一页
+    （release 说明从这里抄），少了它等于发布流程缺一块材料，而构建照样全绿。
+    条目里还禁写发布进度（`待上传` / `未发布` / `release tag` …）：发布状态的真源是
+    `plugins.json`，历史只记版本事实——写进历史就变成第二份状态，而且一定过期。
+    """
+    bad: list[str] = []
+    if not plugins_dir.is_dir():
+        return [f"{plugins_dir.name}/ 不存在（本查失明）"]
+    seen = 0
+    for src in sorted(p for p in plugins_dir.iterdir() if p.is_dir()):
+        manifest = src / "manifest.json"
+        if not manifest.is_file():
+            continue
+        seen += 1
+        pid = src.name
+        try:
+            meta = json.loads(manifest.read_text(encoding="utf-8-sig"))
+        except Exception as e:
+            bad.append(f"{pid}: manifest 读不出（{e}）")
+            continue
+        history = src / "HISTORY.md"
+        if not history.is_file():
+            bad.append(f"{pid}: 缺 HISTORY.md（发 release 要抄的就是这一页）")
+            continue
+        text = history.read_text(encoding="utf-8", errors="replace")
+        headings = [ln for ln in text.splitlines() if ln.startswith("## ")]
+        if not headings:
+            bad.append(f"{pid}: HISTORY.md 里没有任何 `## <版本>` 条目（本查失明）")
+            continue
+        want = f"## {meta.get('version')}"
+        if not headings[0].startswith(want):
+            bad.append(f"{pid}: HISTORY 首条是 {headings[0]!r}，manifest 版本是 {meta.get('version')!r}")
+        released = meta.get("released") or ""
+        if released and released not in headings[0]:
+            bad.append(f"{pid}: HISTORY 首条没有发行日期 {released}（应 = manifest 的 released）")
+        # 只判条目区（第一条 `## ` 之后），标题里的政策说明允许提这些词。
+        body = text.split(headings[0], 1)[1]
+        for word in RELEASE_WORDS:
+            if word in body:
+                bad.append(f"{pid}: HISTORY 条目里出现发布进度词「{word}」（真源是 plugins.json）")
+    if seen == 0:
+        return ["plugins/ 下一枚插件都没扫到（本查失明，不是通过）"]
+    return bad
+
+
 def run(docs: list[Path]) -> list[str]:
     return (
         check_links(docs)
         + check_registered(docs)
         + check_local_paths(docs)
         + check_release_table(ROOT / "README.md", ROOT / "plugins.json")
+        + check_plugin_history(ROOT / "plugins")
     )
 
 
@@ -257,6 +312,44 @@ def selftest() -> int:
     live = check_release_table(ROOT / "README.md", ROOT / "plugins.json")
     cases.append(("本仓 README 表现状无违规", live == []))
     cases.append(("本仓 README 表收得到行", len(release_rows(ROOT / "README.md")) >= 1))
+
+    # 第 5 查：每枚插件的 HISTORY.md。夹具 = 齐全的一份，再逐格破坏。
+    def plugin_fixture(tmp: Path, history: str | None, version: str, released: str) -> Path:
+        root = tmp / "plugins"
+        one = root / "foo"
+        one.mkdir(parents=True, exist_ok=True)
+        (one / "manifest.json").write_text(
+            json.dumps({"schema": 1, "id": "foo", "version": version, "released": released}),
+            encoding="utf-8",
+        )
+        if history is not None:
+            (one / "HISTORY.md").write_text(history, encoding="utf-8")
+        return root
+
+    head = "## 1.2.0 — 2026-01-02 — protocol 1\n\n- **新增**：第一版。\n"
+    with tempfile.TemporaryDirectory() as td2:
+        root = plugin_fixture(Path(td2), head, "1.2.0", "2026-01-02")
+        cases.append(("HISTORY 齐全不误报", check_plugin_history(root) == []))
+    with tempfile.TemporaryDirectory() as td3:
+        root = plugin_fixture(Path(td3), None, "1.2.0", "2026-01-02")
+        cases.append(("缺 HISTORY 要报", len(check_plugin_history(root)) == 1))
+    with tempfile.TemporaryDirectory() as td4:
+        root = plugin_fixture(Path(td4), "## 1.1.0 — 2026-01-02 — protocol 1\n", "1.2.0", "2026-01-02")
+        cases.append(("首条版本不等于 manifest 要报", len(check_plugin_history(root)) == 1))
+    with tempfile.TemporaryDirectory() as td5:
+        root = plugin_fixture(Path(td5), "## 1.2.0 — 2026-01-09 — protocol 1\n", "1.2.0", "2026-01-02")
+        cases.append(("条目日期不等于 released 要报", len(check_plugin_history(root)) == 1))
+    with tempfile.TemporaryDirectory() as td6:
+        root = plugin_fixture(
+            Path(td6), f"## 1.2.0 — 2026-01-02\n\n- **状态**：待上传资产。\n", "1.2.0", "2026-01-02"
+        )
+        cases.append(("条目里写发布进度要报", len(check_plugin_history(root)) == 1))
+    with tempfile.TemporaryDirectory() as td7:
+        empty = Path(td7) / "plugins"
+        empty.mkdir()
+        cases.append(("扫不到插件 = 失明要报", len(check_plugin_history(empty)) == 1))
+    live_history = check_plugin_history(ROOT / "plugins")
+    cases.append(("本仓 HISTORY 现状无违规", live_history == []))
 
     failed = [n for n, ok in cases if not ok]
     for n, ok in cases:

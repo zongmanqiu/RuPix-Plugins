@@ -79,7 +79,8 @@
 ```text
 RuPix-Plugin/
 ├─ plugins/                 每个插件一个目录（<id>/manifest.json + 入口 + 可选 build.ps1）
-│  └─ README.md             插件一览
+│  ├─ README.md             插件一览
+│  └─ <id>/HISTORY.md       每枚插件自己的版本历史（发 release 抄的就是这一页）
 ├─ protocol/                manifest / 请求响应 / 共享内存契约（正本）
 ├─ docs/                    贡献者长期文档（地图 docs/README.md）
 ├─ tools/                   manifest / 许可证 / 秘密 / 文档四道门禁与清单生成器
@@ -114,10 +115,19 @@ cargo run --release --example plugin_smoke -- ..\.temp\plugin-dist\checkup <一�
 
 ## 版本与历史
 
+- **每枚插件一份 `plugins/<id>/HISTORY.md`**（中文，只记对外可见的变化）。发 release 时
+  说明文字就从这一页抄——这一格曾经缺着，而缺着它构建照样全绿，所以它现在由
+  `python tools/check_docs.py` 第 5 查门禁判：首条版本 = manifest 的 `version`、
+  首条日期 = `released`、条目里不许写发布进度。
+  ★ 我原先在这里写过"本仓不逐枚维护 HISTORY.md，另立一份就是第二真源"——**那句是错的**：
+  版本历史不是 manifest `description` 的第二份副本（那字段只描述当前能力），
+  而是"这一版相对上一版对外变了什么"的唯一落点；少了它，发布流程就缺一块材料。
 - 版本源头 = 各插件 `plugins/<id>/manifest.json` 的 `version`；发行日期 = `plugins.json` 的
-  `released`；协议版本 = `protocol/protocol-v1.md`。**本仓不逐枚维护 `HISTORY.md`**——
-  插件只有两枚、每次对外变化都在 manifest 的 `description` 与 README 里写着，另立一份
-  编年史就是第二真源。真正的历史账在宿主仓库的 `HISTORY.md` 与工作区计划区。
+  `released`；协议版本与它本身的史 = `protocol/protocol-v1.md`。
+- **历史条目只记版本事实，不记发布进度**：`待上传` / `未发布` / `release tag` / ZIP 是否生成
+  一律不进历史——发布状态的唯一真源是 `plugins.json`。未发布版本的中间改动**并入下一条**。
+- **ZIP 里带插件自己的 `README.md`，不带 `HISTORY.md`**：历史是给维护者写 release 说明用的，
+  装完插件的用户不需要它（解码器仓同理：每档一份 `HISTORY.md` 在源码仓，不进 DLL 的包）。
 - 版本、大小、发布状态以 `plugins.json` 为准（README 的表只是门面，且由门禁对着清单判）。
 
 ## 文档地图

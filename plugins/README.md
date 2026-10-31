@@ -4,12 +4,14 @@
 
 ```text
 plugins/<id>/
-├─ manifest.json        # 必须
+├─ manifest.json        # 必须（唯一被宿主解析的文件）
 ├─ <entry>.exe          # command / editor 必须
 ├─ build.ps1            # 可选：产出 ../.temp/plugin-dist/<id>/
 ├─ src/                 # 可选：源码
 ├─ assets/              # 可选：模型/资源
-└─ README.md            # 插件自己的说明
+├─ README.md            # 插件自己的说明（随 ZIP 走，给用户看）
+├─ HISTORY.md           # 版本历史（不随 ZIP；发 release 的说明文字从这里抄）
+└─ LICENSE              # 随 ZIP 走
 ```
 
 当前提供：

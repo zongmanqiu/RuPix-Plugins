@@ -79,6 +79,12 @@
   它**自己扫 `plugins/*/Cargo.toml`** ⇒ 加插件不需要往任何清单里登记（清单式门禁失明的正是"忘了加一行"）；
   扫不到 manifest 判**失败**，不算通过。加许可证家族要同时改 `ALLOWED` 与 `THIRD-PARTY-NOTICES.md`；
   它的失败臂由 `--selftest` 自证。
+- **每枚插件目录三份人读文件**：`plugins/<id>/README.md`（当前能力与限制）、
+  **`plugins/<id>/HISTORY.md`（版本历史，发 release 的说明文字从这里抄）**、`LICENSE`。
+  ★ 前两份由 `tools/check_docs.py` 第 5 查判存在与对齐：**首条 `## <版本>` = manifest 的
+  `version`，同一条里要有 `released` 的日期**，条目里**不许**写发布进度
+  （`待上传` / `未发布` / `release tag` / ZIP 是否生成——那些的真源是 `plugins.json`）。
+  改 `version` 必须**同一次**加一条历史，否则门禁红。
 - 每个插件目录可有自己的 `build.ps1`；根脚本负责顺序调用、校验 manifest、
   汇总产物。
 - 发布产物形态：

@@ -11,6 +11,8 @@
 | `protocol/manifest.schema.json` | manifest 字段或校验规则变化 | `python tools/check_manifests.py` |
 | `protocol/protocol-v1.md` | 管道帧、请求响应、共享内存布局变化 | 与宿主 `docs/扩展体系.md` 交叉核对 |
 | `plugins/README.md` | 插件目录约定或清单变化 | 自检 |
+| `plugins/<id>/README.md` | 该插件的当前能力、限制、构建与冒烟方式变化 | `python tools/check_docs.py`（存在性）+ 自检 |
+| `plugins/<id>/HISTORY.md` | **该插件每次对外变化**（发 release 的说明文字从这里抄；版本递增同一次加一条） | `python tools/check_docs.py` 第 5 查（首条版本 = manifest、日期 = `released`、条目不写发布进度） |
 | `docs/README.md` | 文档索引或写作口径变化 | `python tools/check_docs.py` |
 | `docs/architecture.md` | 进程模型 / 数据线 / 能力 / 设置与快捷键 / 生命周期变化 | 自检 + 与 `protocol/` 交叉核对 |
 | `docs/building.md` | 构建流水线或落点变化 | `python tools/check_docs.py` |

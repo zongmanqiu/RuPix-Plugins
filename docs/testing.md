@@ -7,7 +7,7 @@
 | `tools/check_manifests.py` | manifest 结构、字段类型、能力白名单、`id` = 目录名、`settings_ui` 需 `settings.write` | — |
 | `tools/check_licenses.py` | **每个插件**解析出的全部依赖都有许可证且在 `ALLOWED` 里；**扫 0 个判失败**（"没东西可查"不等于"都合格"） | `--selftest`（8 条失败臂）；`--list` 印全集 |
 | `tools/check_secrets.py` | 六条高置信判据：私钥块 / 令牌前缀（带够长的实体）/ URL 内嵌凭据 / 口令**字面量** / 邮箱（署名与许可证文件豁免）/ 含真名的 `C:\Users\<名字>`。**判据窄是刻意的**——天天误报的门禁最后会被加白名单加到失效 | `--selftest`（14 条：六条各自抓得到 + 四组不该报的不误报 + 豁免 + 失明 + 本仓现状） |
-| `tools/check_docs.py` | `docs/*.md` 与根文档的相对链接可达、`DOCS_MANIFEST.md` 登记齐、无本机绝对路径、根 `README.md` 的「发布插件」表与 `plugins.json` 逐格等值 | `--selftest`（16 条） |
+| `tools/check_docs.py` | `docs/*.md` 与根文档的相对链接可达、`DOCS_MANIFEST.md` 登记齐、无本机绝对路径、根 `README.md` 的「发布插件」表与 `plugins.json` 逐格等值、**每枚插件有 `HISTORY.md`**（首条版本 = manifest、日期 = `released`、条目不写发布进度） | `--selftest`（23 条） |
 
 四条门禁都**自己发现**要查的对象（扫目录 / 扫文档 / 扫依赖图），不靠一张手维护的清单——
 清单式门禁失明的地方正是"忘了加一行"。

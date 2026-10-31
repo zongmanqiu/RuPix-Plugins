@@ -6,7 +6,10 @@
 ## 1. 一次发布 = 五步
 
 1. **改版本**：`plugins/<id>/manifest.json` 的 `version` 递增（只增不回退；
-   语义化不强制，但同一版本号不许换内容——已发布资产按 tag 冻结）。
+   语义化不强制，但同一版本号不许换内容——已发布资产按 tag 冻结），
+   **同一次**在 `plugins/<id>/HISTORY.md` 顶部加一条 `## <新版本> — <日期> — protocol N`，
+   写这一版对外变了什么（发 release 时那段说明就从这里抄）。漏加由
+   [`check_docs.py`](testing.md) 第 5 查判红。
 2. **构建**：根 `build.ps1` 全绿（四条门禁 + 各插件单测）。
 3. **产出**：`../.build/docs/<id>_<ver>.zip` 与 `plugins.json`（两份清单会同时更新：
    `.build/docs/` 里给宿主用，仓根那份入库给源码读者看）。ZIP 内除 `manifest.json` + 入口外，
@@ -83,6 +86,7 @@
 ## 5. 发布检查单
 
 - [ ] 各插件 `version` 已递增，`id` 与目录名一致
+- [ ] 每枚插件的 `HISTORY.md` 顶部已加本次版本那一条（首条版本 = manifest、日期 = `released`）
 - [ ] `build.ps1` 全绿（manifests / licenses / docs / 单测）
 - [ ] 冒烟两腿通过（见 [`testing.md`](testing.md) §3）
 - [ ] 真机四条通过（§4）
