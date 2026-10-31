@@ -201,6 +201,9 @@ def main() -> int:
                 "author": meta.get("author", "RuPix"),
                 "license": meta.get("license", "MIT"),
                 "file": file_name,
+                # size / sha256 描述的是**整枚 ZIP** 的字节，不是包内 exe：包改一个字（含人读文件）
+                # 就要重传资产并同步这两格。解码器仓相反（那边算包内 DLL），判据表见
+                # RuPix-Decoder/docs/releasing.md「改了哪一层材料」。
                 "size": len(data),
                 "sha256": hashlib.sha256(data).hexdigest(),
                 "gitee": f"{GITEE}/{tag}/{file_name}",
