@@ -1,0 +1,21 @@
+[package]
+name = "rupix-plugin-scan"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde_json = "1"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_System_Memory",
+] }
+# 条码解码 = ZXing 的 Rust 移植。★ 关掉默认特性：`image` / `image_formats` 会拖进一整套
+# 图片解码栈（png/jpeg/avif…），而像素是宿主解好交给我们的——插件不解文件，这条边界
+# 与 AGENTS §一.2「不依赖解码器」是同一条。留下的非可选依赖里 chrono-tz 最重，
+# 它是 rxing 解析 DataMatrix/Aztec 日期段用的，砍不掉。
+rxing = { version = "0.6", default-features = false }
+
+[profile.release]
+opt-level = "z"
+strip = true

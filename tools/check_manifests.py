@@ -30,6 +30,8 @@ CAPS = {
     "settings.read",
     "settings.write",
     "process.spawn",
+    "open.url",
+    "open.file",
 }
 KINDS = {"command", "editor", "panel"}
 

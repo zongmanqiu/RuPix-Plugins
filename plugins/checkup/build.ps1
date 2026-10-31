@@ -1,11 +1,11 @@
-# Build the diagnostic echo plugin.
-# Output: plugins/com.rupix.echo/dist/com.rupix.echo/
+# Build the image checkup plugin (report only, no window).
+# Output: ../.temp/plugin-dist/checkup/
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 $repo = Split-Path (Split-Path $here -Parent) -Parent
 $workspace = Split-Path $repo -Parent
-$target = Join-Path $workspace ".temp\plugin-target\echo"
-$out = Join-Path $workspace ".temp\plugin-dist\com.rupix.echo"
+$target = Join-Path $workspace ".temp\plugin-target\checkup"
+$out = Join-Path $workspace ".temp\plugin-dist\checkup"
 $manifest = Join-Path $here "manifest.json"
 
 if (-not (Test-Path -LiteralPath $manifest)) {
@@ -24,7 +24,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 New-Item -ItemType Directory -Force -Path $out | Out-Null
-Copy-Item -LiteralPath (Join-Path $target "release\rupix-plugin-echo.exe") -Destination (Join-Path $out "echo.exe") -Force
+Copy-Item -LiteralPath (Join-Path $target "release\rupix-plugin-checkup.exe") -Destination (Join-Path $out "checkup.exe") -Force
 Copy-Item -LiteralPath $manifest -Destination (Join-Path $out "manifest.json") -Force
-Write-Host "built com.rupix.echo -> $out"
+Write-Host "built checkup -> $out"
 exit 0

@@ -1,65 +1,48 @@
 [
   {
-    "id": "com.rupix.doodle",
-    "name": "图像涂鸦",
-    "version": "0.1.1",
-    "protocol": 1,
-    "min_host": "0.1.0",
-    "kind": "editor",
-    "description": "独立窗口涂鸦：预览上画，应用时按原图重绘",
-    "capabilities": [
-      "image.read",
-      "image.write",
-      "ui.window"
-    ],
-    "released": "2026-10-28",
-    "author": "RuPix",
-    "license": "MIT",
-    "file": "com.rupix.doodle_0.1.1.zip",
-    "size": 121926,
-    "sha256": "df7c511aa259cb5da038d570e347f639a6c4b22b952b8fad097efa211f947a72",
-    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/com.rupix.doodle_0.1.1/com.rupix.doodle_0.1.1.zip",
-    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/com.rupix.doodle_0.1.1/com.rupix.doodle_0.1.1.zip"
-  },
-  {
-    "id": "com.rupix.echo",
-    "name": "回显诊断",
-    "version": "0.1.1",
+    "id": "checkup",
+    "name": "图片体检",
+    "version": "0.1.0",
     "protocol": 1,
     "min_host": "0.1.0",
     "kind": "command",
-    "description": "把宿主请求原样回显，用来验证插件进程/管道/协议链路；齿轮里可切换「回显转大写」",
+    "description": "对当前图片一次算完六段读数：尺寸与比例 / 透明度 / 平均色 / 主色板 / 前后景对比度（WCAG 2.1）/ 清晰度（拉普拉斯方差）。公式写死并注明出处，每段印出实际采样点数，结果是一段可复制的 Markdown",
     "capabilities": [
+      "image.read",
       "settings.read",
       "settings.write"
     ],
-    "released": "2026-10-28",
+    "released": "2026-10-31",
     "author": "RuPix",
     "license": "MIT",
-    "file": "com.rupix.echo_0.1.1.zip",
-    "size": 82601,
-    "sha256": "807d1b7c4d20b4d8a9cdc427145eabbb39ba0f230e58d8b2793b3517dacd79f9",
-    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/com.rupix.echo_0.1.1/com.rupix.echo_0.1.1.zip",
-    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/com.rupix.echo_0.1.1/com.rupix.echo_0.1.1.zip"
+    "file": "checkup_0.1.0.zip",
+    "size": 144972,
+    "sha256": "5186f5120d4bee56015d6c013cd56eeaaef346219da937bf8124d42b8f1ab5a1",
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip"
   },
   {
-    "id": "com.rupix.ocr",
-    "name": "Windows OCR",
-    "version": "0.2.0",
+    "id": "scan",
+    "name": "条码识别",
+    "version": "0.1.0",
     "protocol": 1,
     "min_host": "0.1.0",
     "kind": "command",
-    "description": "用 Windows 本地 OCR 引擎识别当前图片文字（需系统已装语言包）",
+    "description": "识别当前图片里的条码与二维码（一维码 / QR / DataMatrix / Aztec / PDF417），逐条列出内容与载荷类型；默认只列出，勾上设置里的「解码后直接打开网址 / 图片」才交给系统默认程序",
     "capabilities": [
-      "image.read"
+      "image.read",
+      "settings.read",
+      "settings.write",
+      "open.url",
+      "open.file"
     ],
-    "released": "2026-10-28",
+    "released": "2026-10-31",
     "author": "RuPix",
     "license": "MIT",
-    "file": "com.rupix.ocr_0.2.0.zip",
-    "size": 120289,
-    "sha256": "4ad79491852b80072c4319f3bf4b1180fe37b3b9fa676f0698e4b00a095ed353",
-    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/com.rupix.ocr_0.2.0/com.rupix.ocr_0.2.0.zip",
-    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/com.rupix.ocr_0.2.0/com.rupix.ocr_0.2.0.zip"
+    "file": "scan_0.1.0.zip",
+    "size": 853722,
+    "sha256": "e5b6cca5ec3124bf621ff2692924925c646b0a7ac1ae322ebdbd1460ed765e8e",
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip"
   }
 ]

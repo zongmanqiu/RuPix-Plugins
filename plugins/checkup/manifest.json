@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "id": "checkup",
+  "name": "图片体检",
+  "version": "0.1.0",
+  "protocol": 1,
+  "min_host": "0.1.0",
+  "kind": "command",
+  "entry": "checkup.exe",
+  "args": ["--colors=8"],
+  "capabilities": ["image.read", "settings.read", "settings.write"],
+  "settings": [
+    { "key": "palette", "label": "主色板色数", "type": "choice",
+      "choices": ["4", "8", "16"], "labels": ["4 色", "8 色", "16 色"], "default": "8" },
+    { "key": "hotkey", "label": "快捷键", "type": "hotkey", "default": "" }
+  ],
+  "platforms": ["windows-x64"],
+  "description": "对当前图片一次算完六段读数：尺寸与比例 / 透明度 / 平均色 / 主色板 / 前后景对比度（WCAG 2.1）/ 清晰度（拉普拉斯方差）。公式写死并注明出处，每段印出实际采样点数，结果是一段可复制的 Markdown",
+  "author": "RuPix",
+  "license": "MIT",
+  "released": "2026-10-31"
+}

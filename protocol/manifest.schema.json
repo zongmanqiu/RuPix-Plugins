@@ -53,7 +53,9 @@
           "ui.panel",
           "settings.read",
           "settings.write",
-          "process.spawn"
+          "process.spawn",
+          "open.url",
+          "open.file"
         ]
       }
     },
@@ -73,6 +75,38 @@
       "type": "boolean",
       "default": false,
       "description": "插件自带设置窗口：宿主在插件卡上给一颗齿轮，以 action=settings 拉起；必须同时声明 settings.write"
+    },
+    "settings": {
+      "type": "array",
+      "description": "声明式设置项（协议 v1 加法式新增）：给了它，宿主**自己渲染**设置窗（齿轮 → 宿主窗口），不再以 action=settings 拉起插件；与 settings_ui 二选一。必须同时声明 settings.read 与 settings.write。type=hotkey 的那一项就是该插件的动态热键。",
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]+$",
+            "description": "设置区里的键名（plugins/<id>/settings.json 的键）"
+          },
+          "label": { "type": "string", "minLength": 1 },
+          "type": { "enum": ["bool", "choice", "int", "text", "hotkey"] },
+          "default": {
+            "description": "缺省值。缺省：bool=false、int=0、choice=choices[0]、text/hotkey=空串"
+          },
+          "choices": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 2,
+            "description": "仅 type=choice：可选值（存的就是这里的字符串）"
+          },
+          "labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "仅 type=choice：给人看的标签，与 choices 等长；空 = 直接显示取值"
+          }
+        }
+      }
     },
     "description": { "type": "string" },
     "author": { "type": "string" },

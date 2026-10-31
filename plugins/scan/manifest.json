@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "scan",
+  "name": "条码识别",
+  "version": "0.1.0",
+  "protocol": 1,
+  "min_host": "0.1.0",
+  "kind": "command",
+  "entry": "scan.exe",
+  "capabilities": ["image.read", "settings.read", "settings.write", "open.url", "open.file"],
+  "settings": [
+    { "key": "open_url", "label": "解码后直接打开网址", "type": "bool", "default": false },
+    { "key": "open_image", "label": "解码后直接打开图片", "type": "bool", "default": false },
+    { "key": "hotkey", "label": "快捷键", "type": "hotkey", "default": "" }
+  ],
+  "platforms": ["windows-x64"],
+  "description": "识别当前图片里的条码与二维码（一维码 / QR / DataMatrix / Aztec / PDF417），逐条列出内容与载荷类型；默认只列出，勾上设置里的「解码后直接打开网址 / 图片」才交给系统默认程序",
+  "author": "RuPix",
+  "license": "MIT",
+  "released": "2026-10-31"
+}

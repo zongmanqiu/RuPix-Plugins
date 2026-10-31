@@ -20,6 +20,32 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# Supply-chain gate: every resolved package of every plugin must carry a
+# license we are willing to redistribute. Discovers manifests, so a new plugin
+# cannot escape it by being forgotten in a list.
+& python (Join-Path $root "tools\check_licenses.py")
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "plugin license gate failed"
+    exit $LASTEXITCODE
+}
+
+# No-secrets / no-privacy gate (this repo is published). Same criteria as the
+# decoder repo's tool; each repo scans its own tree. Must run BEFORE a push,
+# because deleting a leaked file later does not remove it from git history.
+& python (Join-Path $root "tools\check_secrets.py")
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "plugin secrets gate failed"
+    exit $LASTEXITCODE
+}
+
+# Documentation gate: relative links resolve, every doc is registered in
+# DOCS_MANIFEST.md, no local absolute paths leaked into prose.
+& python (Join-Path $root "tools\check_docs.py")
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "plugin docs gate failed"
+    exit $LASTEXITCODE
+}
+
 New-Item -ItemType Directory -Force -Path $distRoot | Out-Null
 
 $built = 0

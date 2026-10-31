@@ -10,3 +10,6 @@ target/
 # local logs / temp
 *.log
 .temp/
+
+# python 缓存（工具跑出来的，不是源码）
+__pycache__/
