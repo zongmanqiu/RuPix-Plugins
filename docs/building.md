@@ -37,9 +37,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File plugins/checkup/build.ps1
 `cargo build --release`、把 exe 与 manifest 拷到 `../.temp/plugin-dist/<id>/`。
 
 ★ **打包是确定性的**：`make_catalog.py` 把 ZIP 条目的时间戳钉死成 `1980-01-01`，所以
-**同样内容 ⇒ 同样字节 ⇒ 同样 `sha256`**（连打两次实测一致）。清单里的 sha 因此描述"包里有啥"，
-不描述"哪一刻打的包"。日常只改一枚插件就只重打那一枚（`plugins/<id>/build.ps1` + `make_catalog.py`），
-另一枚的字节与 sha 不会被动过。
+**同样内容 ⇒ 同样字节**（连打两次实测一致）。这条现在只服务"可复现"——2026-11-02 起清单
+与宿主都不校验哈希，同内容重打能确认"改的到底是内容还是时间戳"。
+日常只改一枚插件就只重打那一枚（`plugins/<id>/build.ps1` + `make_catalog.py`），
+另一枚的字节不会被动过。
 
 ## 4. 加一枚插件
 

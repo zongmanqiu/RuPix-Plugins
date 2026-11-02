@@ -17,7 +17,6 @@
     "license": "MIT",
     "file": "checkup_0.1.0.zip",
     "size": 144972,
-    "sha256": "5186f5120d4bee56015d6c013cd56eeaaef346219da937bf8124d42b8f1ab5a1",
     "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip",
     "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip"
   },
@@ -41,7 +40,6 @@
     "license": "MIT",
     "file": "scan_0.1.0.zip",
     "size": 853722,
-    "sha256": "e5b6cca5ec3124bf621ff2692924925c646b0a7ac1ae322ebdbd1460ed765e8e",
     "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip",
     "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip"
   }

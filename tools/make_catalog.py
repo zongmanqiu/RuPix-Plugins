@@ -12,7 +12,6 @@ generated `THIRD-PARTY-NOTICES.md` (the per-package license table).
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import sys
 import zipfile
@@ -135,8 +134,9 @@ def fail(msg: str) -> int:
 
 # ZIP 里每个条目的时间戳钉死成这一格 ⇒ **包字节是内容的纯函数**。
 # 实测不过这么做会怎样：用文件真实 mtime + `writestr` 的当前时间，同样内容重打一次包，
-# `sha256` 就变（`e4b855a6…` → `85497a25…`），于是"清单里的 sha"变成"哪一刻打的包"的函数，
-# 而不是"包里有啥"的函数——上传的资产与清单必须同刻对齐，否则宿主判校验失败。
+# 字节就变（`e4b855a6…` → `85497a25…`），于是"包"变成"哪一刻打的包"的函数，而不是
+# "包里有啥"的函数。钉住之后同内容重打可复现，上传前能确认"改的到底是内容还是时间戳"。
+# ★ 2026-11-02 起清单与宿主都不校验哈希，这条只服务"可复现"，不再服务"对账"。
 ZIP_FIXED_DATE = (1980, 1, 1, 0, 0, 0)
 
 
@@ -201,11 +201,9 @@ def main() -> int:
                 "author": meta.get("author", "RuPix"),
                 "license": meta.get("license", "MIT"),
                 "file": file_name,
-                # size / sha256 描述的是**整枚 ZIP** 的字节，不是包内 exe：包改一个字（含人读文件）
-                # 就要重传资产并同步这两格。解码器仓相反（那边算包内 DLL），判据表见
-                # RuPix-Decoder/docs/releasing.md「改了哪一层材料」。
+                # size 只用于列表显示（2026-11-02 用户口径：清单不记哈希，宿主只认 id + version）。
+                # 解码器仓同日同口径，两仓的清单结构现在一致。
                 "size": len(data),
-                "sha256": hashlib.sha256(data).hexdigest(),
                 "gitee": f"{GITEE}/{tag}/{file_name}",
                 "github": f"{GITHUB}/{tag}/{file_name}",
             }

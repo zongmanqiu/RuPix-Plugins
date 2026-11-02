@@ -11,8 +11,8 @@
 | `scan`（条码识别） | 0.1.0 | 命令型 | 853,722 B | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) |
 
 - 表中字节数与日期抄自 [`plugins.json`](plugins.json)（**真源在那份清单里**，本表只是门面；
-  不一致由 `python tools/check_docs.py` 判红）。`sha256` 只在清单里给，宿主页下载后
-  **size 与 sha256 两个都核对**：size 挡截断/多收，sha256 挡同字节数替换。
+  不一致由 `python tools/check_docs.py` 判红）。清单**不记哈希**（2026-11-02 用户口径：
+  官方产物只认名称与版本号），`size` 只用于上表这列显示。
 - ★ **上架状态（2026-11-01 实测）**：这两枚的 release tag **还没创建**——上面四条地址目前 404，
   宿主点「下载」会如实报失败。上架动作（打 tag + 传 ZIP）由维护者手工做，步骤见
   [`docs/releasing.md`](docs/releasing.md) §1；ZIP 在本仓构建末尾产出到 `<工作区>/.build/docs/`。
