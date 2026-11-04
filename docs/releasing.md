@@ -26,6 +26,23 @@
      所以这一步从"必须同步清单"降级成"记得重传资产"——见 [`pitfalls.md`](pitfalls.md) P9）。
 5. **复核**：宿主「插件 → 可下载」卡应看到新版本并可「升级」。
 
+★ **发布 ZIP 一律由 7-Zip 生成**（2026-11-04 起）：上面第 3 步的 `make_catalog.py` 调
+7-Zip 命令行（`7z` / `7za` / `7zz`，PATH 里找不到时可用 `RUPIX_7Z` 指到可执行文件），
+参数是 `a -tzip -mx=9 -mtm=off -mta=off -mtc=off`。产物仍是**标准 ZIP / Deflate**、文件名
+仍是 `<id>_<version>.zip`，不是 `.7z`，宿主解压链路一字未改。换工具只为压缩率：同样一份
+内容，最高级 Deflate 实测比原先默认级别小约 4%（851 KB DLL：7-Zip 371,876 B，Python 默认
+387,583 B）。找不到 7-Zip 时脚本**报错退出，不静默回退**；前置依赖见
+[`building.md`](building.md)。
+
+★ **打包仍是确定性的**：`pack_zip()` 在打包前把暂存目录（含目录自身）的 mtime 压到
+`1980-01-01`，再关掉高精度时间戳字段；同内容连打两次逐字节一致（实测）。
+**2026-11-04 已全量重打并上架（Gitee）**：`../.build/docs/` 三枚 ZIP 均由 7-Zip 生成，
+`plugins.json` 的 `size` 与根 README 门面表已同步到新字节数（`check_docs.py` 第 4 查判
+等值），并经 Gitee OpenAPI 传到各自的 `<id>_<version>` tag：已有的替换同名附件，
+`levels_0.1.5` 新建 tag；**release 说明统一取该插件 `HISTORY.md` 里对应版本那一条**。
+宿主按 `id` + `version` 识别，不会因压缩器不同而拒收。上面第 4 步说的**两个镜像都要传**
+仍是规则：截至本次，GitHub 镜像的 release 资产尚未同步。
+
 ## 2. 版本与兼容
 
 - 插件协议 `protocol` 落在宿主支持的区间（当前 `1..=1`）。**下界永不抬**：
@@ -62,7 +79,7 @@
 | `author` / `license` | 否 | manifest | 信息窗的署名与许可 |
 | `gitee` / `github` | 是（生成器） | 生成器 | 两条下载地址；点「下载」按选项页「下载源」选哪一列 |
 
-- **清单里没有哈希**（2026-11-02 用户口径）：插件包全部由本仓 `build.ps1` 产出、release 只有
+- **清单里没有哈希**（2026-11-02 起）：插件包全部由本仓 `build.ps1` 产出、release 只有
   作者能发，指纹挡的"第三方替换/篡改"在这条链路上没有入口；而 MSVC 每次链接都换 PDB GUID，
   同源码重编字节必变，清单与资产会天天失配。识别一枚插件只认 `id` + `version`，宿主侧
   `extensions::install` 已同步删掉 `size` / `sha256` 校验（包身份由 ZIP 里的 `manifest.json`
@@ -70,7 +87,7 @@
 - **远程优先、本地兜底**：点「下载」先按所选来源联网；联网失败而 `docs/<file>` 里有同一枚包
   ⇒ 用本地那份装（404 不该把用户卡死）。两条都没有才报"这一枚在当前来源还没有发布地址"。
 - **单枚 ZIP 上限 512 MiB**（宿主 `extensions::install::MAX_BYTES`）：超了直接拒收，
-  不是"慢一点"。今天两枚都在 1 MiB 量级。
+  不是"慢一点"。今天三枚都在 1 MiB 量级。
 - **`gitee` 是主源、`github` 由它推导**：两个镜像的 **owner 不同**（Gitee `qiuzongman` /
   GitHub `zongmanqiu`），推导时**主机名与 owner 一起换**。`released` 与 `gitee` 由人填。
 - **仓库名是复数 `RuPix-Plugins`，本地目录是单数 `RuPix-Plugin/`**；默认分支 `main`。

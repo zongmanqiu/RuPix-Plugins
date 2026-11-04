@@ -16,9 +16,31 @@
     "author": "RuPix",
     "license": "MIT",
     "file": "checkup_0.1.0.zip",
-    "size": 144972,
+    "size": 140159,
     "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip",
     "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip"
+  },
+  {
+    "id": "levels",
+    "name": "色阶分析",
+    "version": "0.1.5",
+    "protocol": 1,
+    "min_host": "0.1.0",
+    "kind": "command",
+    "description": "把当前图片的明暗家底摊开：全量统计 R/G/B/亮度四组 256 箱，报出均值、中位数、峰值箱、暗部与高光溢出比例、三通道均值与偏色提示；同时自己画一张 640x360 的 PNG（四条平滑曲线叠加，只描线不上面积色，横轴 5 档刻度、纵轴标绝对点数），由宿主开新看图窗口显示。宿主零改动，插件零新增依赖",
+    "capabilities": [
+      "image.read",
+      "settings.read",
+      "settings.write",
+      "open.file"
+    ],
+    "released": "2026-11-04",
+    "author": "RuPix",
+    "license": "MIT",
+    "file": "levels_0.1.5.zip",
+    "size": 125197,
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/levels_0.1.5/levels_0.1.5.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/levels_0.1.5/levels_0.1.5.zip"
   },
   {
     "id": "scan",
@@ -27,7 +49,7 @@
     "protocol": 1,
     "min_host": "0.1.0",
     "kind": "command",
-    "description": "识别当前图片里的条码与二维码（一维码 / QR / DataMatrix / Aztec / PDF417），逐条列出内容与载荷类型；默认只列出，勾上设置里的「解码后直接打开网址 / 图片」才交给系统默认程序",
+    "description": "识别当前图片里的条码与二维码（一维码 / QR / DataMatrix / Aztec / PDF417），逐条列出内容与载荷类型；默认只列出，勾上设置里的「解码后直接打开网址 / 图片」才打开（网址交系统浏览器，图片由宿主开新窗显示）",
     "capabilities": [
       "image.read",
       "settings.read",
@@ -39,7 +61,7 @@
     "author": "RuPix",
     "license": "MIT",
     "file": "scan_0.1.0.zip",
-    "size": 853722,
+    "size": 798029,
     "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip",
     "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip"
   }

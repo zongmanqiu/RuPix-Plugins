@@ -7,14 +7,15 @@
 
 | 插件 | 版本 | 形态 | ZIP 大小 | 发行日期 | Gitee | GitHub |
 |---|---:|---:|---:|---:|---|---|
-| `checkup`（图片体检） | 0.1.0 | 命令型 | 144,972 B | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip) |
-| `scan`（条码识别） | 0.1.0 | 命令型 | 853,722 B | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) |
+| `checkup`（图片体检） | 0.1.0 | 命令型 | 140,159 B | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip) |
+| `scan`（条码识别） | 0.1.0 | 命令型 | 798,029 B | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) |
+| `levels`（色阶分析） | 0.1.5 | 命令型 | 125,197 B | 2026-11-04 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/levels_0.1.5/levels_0.1.5.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/levels_0.1.5/levels_0.1.5.zip) |
 
 - 表中字节数与日期抄自 [`plugins.json`](plugins.json)（**真源在那份清单里**，本表只是门面；
-  不一致由 `python tools/check_docs.py` 判红）。清单**不记哈希**（2026-11-02 用户口径：
+  不一致由 `python tools/check_docs.py` 判红）。清单**不记哈希**（2026-11-02 起：
   官方产物只认名称与版本号），`size` 只用于上表这列显示。
-- ★ **上架状态（2026-11-01 实测）**：这两枚的 release tag **还没创建**——上面四条地址目前 404，
-  宿主点「下载」会如实报失败。上架动作（打 tag + 传 ZIP）由维护者手工做，步骤见
+- ★ **上架状态以远端为准**：表中六条地址由维护者打 tag + 传 ZIP 后才会生效；未上架时
+  宿主点「下载」会如实报失败，不会静默跳过。上架步骤见
   [`docs/releasing.md`](docs/releasing.md) §1；ZIP 在本仓构建末尾产出到 `<工作区>/.build/docs/`。
 - ZIP 内容 = `manifest.json` + `<id>.exe` + `README.md` + `LICENSE` + **`LICENSE-NOTICE.md`**
   + **`THIRD-PARTY-NOTICES.md`**（这枚插件自己的逐包许可表：包名 / 版本 / SPDX 表达式，
@@ -33,8 +34,8 @@
 `com.rupix.ocr_0.2.0`。这三枚**已从本仓源码移除**，不再构建、也不在清单里；
 **tag 与附件不撤**（撤对外资产是破坏性动作，老用户还要按老清单取包）。
 
-- 主源（Gitee）`main` 的 `plugins.json` 已经是上面表里这两枚；**镜像（GitHub）还没推**，
-  选了 GitHub 下载源的用户目前拿到的仍是旧清单。
+- 主源（Gitee）与镜像（GitHub）的 `main` 分支由维护者分别推送；两侧未同步时，
+  选了尚未更新那一侧的用户拿到的仍是旧清单。
 
 ## 安装
 
@@ -119,8 +120,7 @@ cargo run --release --example plugin_smoke -- ..\.temp\plugin-dist\checkup <一�
   说明文字就从这一页抄——这一格曾经缺着，而缺着它构建照样全绿，所以它现在由
   `python tools/check_docs.py` 第 5 查门禁判：首条版本 = manifest 的 `version`、
   首条日期 = `released`、条目里不许写发布进度。
-  ★ 我原先在这里写过"本仓不逐枚维护 HISTORY.md，另立一份就是第二真源"——**那句是错的**：
-  版本历史不是 manifest `description` 的第二份副本（那字段只描述当前能力），
+  ★ 版本历史不是 manifest `description` 的第二份副本（那字段只描述当前能力），
   而是"这一版相对上一版对外变了什么"的唯一落点；少了它，发布流程就缺一块材料。
 - 版本源头 = 各插件 `plugins/<id>/manifest.json` 的 `version`；发行日期 = `plugins.json` 的
   `released`；协议版本与它本身的史 = `protocol/protocol-v1.md`。

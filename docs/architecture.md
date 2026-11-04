@@ -54,7 +54,7 @@
 | `clipboard.write` | 结果自动写系统剪贴板 |
 | `settings.read` / `settings.write` | 设置区 `plugins/<id>/settings.json` 的读与合并写 |
 | `open.url` | 响应里的 `open_url` 交系统默认浏览器（只认 http/https，宿主再验一次） |
-| `open.file` | 响应里的 `open_image` 字节按**文件头**复核后落 `<exe>/temp/`，交系统默认程序 |
+| `open.file` | 响应里的 `open_image` 字节按**文件头**复核后落 `<exe>/temp/`，宿主开**新看图窗口**显示（2026-11-04 起不交系统关联） |
 
 其余能力（`network`、`file.read` / `file.write`、`process.spawn`、`ui.window`、
 `selection.read`、`ui.panel`）只是**告知**用户——声明了不会有宿主通道，要自己实现

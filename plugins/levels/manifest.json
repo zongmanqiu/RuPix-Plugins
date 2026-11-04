@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "id": "levels",
+  "name": "色阶分析",
+  "version": "0.1.5",
+  "protocol": 1,
+  "min_host": "0.1.0",
+  "kind": "command",
+  "entry": "levels.exe",
+  "capabilities": ["image.read", "settings.read", "settings.write", "open.file"],
+  "settings": [
+    { "key": "open_image", "label": "同时生成分布曲线图", "type": "bool", "default": true },
+    { "key": "hotkey", "label": "快捷键", "type": "hotkey", "default": "" }
+  ],
+  "platforms": ["windows-x64"],
+  "description": "把当前图片的明暗家底摊开：全量统计 R/G/B/亮度四组 256 箱，报出均值、中位数、峰值箱、暗部与高光溢出比例、三通道均值与偏色提示；同时自己画一张 640x360 的 PNG（四条平滑曲线叠加，只描线不上面积色，横轴 5 档刻度、纵轴标绝对点数），由宿主开新看图窗口显示。宿主零改动，插件零新增依赖",
+  "author": "RuPix",
+  "license": "MIT",
+  "released": "2026-11-04"
+}

@@ -13,8 +13,11 @@ generated `THIRD-PARTY-NOTICES.md` (the per-package license table).
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import subprocess
 import sys
-import zipfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -26,6 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 WORKSPACE = ROOT.parent
 PLUGINS = ROOT / "plugins"
 DIST = WORKSPACE / ".temp" / "plugin-dist"
+STAGE = WORKSPACE / ".temp" / "plugin-stage"
 DOCS = WORKSPACE / ".build" / "docs"
 GITEE = "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download"
 GITHUB = "https://github.com/zongmanqiu/RuPix-Plugins/releases/download"
@@ -132,23 +136,61 @@ def fail(msg: str) -> int:
     return 1
 
 
-# ZIP 里每个条目的时间戳钉死成这一格 ⇒ **包字节是内容的纯函数**。
-# 实测不过这么做会怎样：用文件真实 mtime + `writestr` 的当前时间，同样内容重打一次包，
-# 字节就变（`e4b855a6…` → `85497a25…`），于是"包"变成"哪一刻打的包"的函数，而不是
-# "包里有啥"的函数。钉住之后同内容重打可复现，上传前能确认"改的到底是内容还是时间戳"。
+# ZIP 里每个条目的时间戳钉死成这一格 ⇒ **包字节是内容的纯函数**。7-Zip 从磁盘 mtime
+# 取条目时间，所以打包前把暂存目录（含目录自身）统一压到这一刻，再关掉高精度时间字段。
+# 不这么做，同样内容重打一次包字节就变，"包"变成"哪一刻打的包"的函数，而不是"包里有啥"
+# 的函数。钉住之后上传前重打一次，就能确认"改的到底是内容还是时间戳"。
 # ★ 2026-11-02 起清单与宿主都不校验哈希，这条只服务"可复现"，不再服务"对账"。
 ZIP_FIXED_DATE = (1980, 1, 1, 0, 0, 0)
+ZIP_FIXED_EPOCH = time.mktime((*ZIP_FIXED_DATE, 0, 0, -1))
 
 
-def add_entry(z: zipfile.ZipFile, arcname: str, data: bytes) -> None:
-    info = zipfile.ZipInfo(arcname, date_time=ZIP_FIXED_DATE)
-    info.compress_type = zipfile.ZIP_DEFLATED
-    info.external_attr = 0o644 << 16
-    z.writestr(info, data)
+def seven_zip() -> str:
+    """Locate the 7-Zip CLI. Override > PATH > the usual install directories."""
+    override = os.environ.get("RUPIX_7Z")
+    if override:
+        if not Path(override).is_file():
+            raise SystemExit(f"RUPIX_7Z points to a missing executable: {override}")
+        return override
+    for name in ("7z", "7za", "7zz"):
+        found = shutil.which(name)
+        if found:
+            return found
+    for candidate in (r"C:\Program Files\7-Zip\7z.exe",
+                      r"C:\Program Files (x86)\7-Zip\7z.exe"):
+        if Path(candidate).is_file():
+            return candidate
+    raise SystemExit(
+        "7-Zip CLI not found: install 7-Zip (or put 7za.exe on PATH), or set "
+        "RUPIX_7Z to the full path of 7z.exe / 7za.exe. Release ZIPs must be "
+        "produced by 7-Zip; see docs/releasing.md."
+    )
+
+
+def pack_zip(zip_path: Path, stage: Path, exe7z: str) -> None:
+    """Pack a staged directory with 7-Zip, keeping the archive reproducible.
+
+    `-tzip -mx=9` = ZIP / max Deflate (better ratio than the default level).
+    `-mtm/-mta/-mtc=off` = do not emit high-precision NTFS timestamps, so the
+    DOS timestamp we fixed on disk is the only one that lands in the archive.
+    """
+    for p in [stage, *sorted(stage.rglob("*"))]:
+        os.utime(p, (ZIP_FIXED_EPOCH, ZIP_FIXED_EPOCH))
+    if zip_path.exists():
+        # `7z a` UPDATES an existing archive: stale entries would survive.
+        zip_path.unlink()
+    names = [p.name for p in sorted(stage.iterdir())]
+    subprocess.run(
+        [exe7z, "a", "-tzip", "-mx=9", "-mtm=off", "-mta=off", "-mtc=off",
+         "-bso0", "-bsp0", str(zip_path), *names],
+        cwd=stage, check=True,
+    )
 
 
 def main() -> int:
     DOCS.mkdir(parents=True, exist_ok=True)
+    STAGE.mkdir(parents=True, exist_ok=True)
+    exe7z = seven_zip()
     entries = []
     for src in sorted(p for p in PLUGINS.iterdir() if p.is_dir()):
         manifest = src / "manifest.json"
@@ -169,22 +211,31 @@ def main() -> int:
 
         file_name = f"{pid}_{ver}.zip"
         out_zip = DOCS / file_name
-        with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as z:
-            for p in sorted(payload.rglob("*")):
-                if p.is_file():
-                    add_entry(z, p.relative_to(payload).as_posix(), p.read_bytes())
-            for doc in DOC_FILES:
-                f = src / doc
-                if f.is_file() and not (payload / doc).is_file():
-                    add_entry(z, doc, f.read_bytes())
-            # 许可与源码位置：每枚 ZIP 必带，内容由 `license_notice()` 现生成。
-            add_entry(z, "LICENSE-NOTICE.md", license_notice(str(pid), str(ver), file_name).encode("utf-8"))
-            # 逐包许可表：静态链接进 exe 的第三方 crate，许可识别要随作品一起到用户手里。
-            notices = third_party_notices(src)
-            if notices is None:
-                print(f"  note: {pid} 没有 Cargo.toml（纯资源插件）⇒ 不带逐包许可表")
-            else:
-                add_entry(z, "THIRD-PARTY-NOTICES.md", notices.encode("utf-8"))
+        # 7-Zip 从磁盘文件打包，所以先把这一枚的内容摊进独立暂存目录。
+        stage = STAGE / str(pid)
+        if stage.exists():
+            shutil.rmtree(stage)
+        stage.mkdir(parents=True)
+        for p in sorted(payload.rglob("*")):
+            if p.is_file():
+                dst = stage / p.relative_to(payload)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(p, dst)
+        for doc in DOC_FILES:
+            f = src / doc
+            if f.is_file() and not (stage / doc).is_file():
+                shutil.copy2(f, stage / doc)
+        # 许可与源码位置：每枚 ZIP 必带，内容由 `license_notice()` 现生成。
+        (stage / "LICENSE-NOTICE.md").write_text(
+            license_notice(str(pid), str(ver), file_name), encoding="utf-8", newline="\n")
+        # 逐包许可表：静态链接进 exe 的第三方 crate，许可识别要随作品一起到用户手里。
+        notices = third_party_notices(src)
+        if notices is None:
+            print(f"  note: {pid} 没有 Cargo.toml（纯资源插件）⇒ 不带逐包许可表")
+        else:
+            (stage / "THIRD-PARTY-NOTICES.md").write_text(
+                notices, encoding="utf-8", newline="\n")
+        pack_zip(out_zip, stage, exe7z)
         data = out_zip.read_bytes()
         tag = f"{pid}_{ver}"
         entries.append(

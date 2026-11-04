@@ -1,6 +1,6 @@
 # 第三方组件许可与说明（RuPix-Plugin）
 
-> **读取日期 2026-10-31。版本与许可证一律实读 `cargo metadata`（各插件自己的 `Cargo.lock`），
+> **读取日期 2026-11-04。版本与许可证一律实读 `cargo metadata`（各插件自己的 `Cargo.lock`），
 > 不许凭记忆写。** 机器判据 = `python tools/check_licenses.py`（白名单在
 > `tools/check_licenses.py` 的 `ALLOWED` 里，加一个许可证家族必须同时改那里和本表）。
 
@@ -19,7 +19,7 @@
 （Gitee / GitHub 两条链接）。它**不是仓库里的文件**，而是 `tools/make_catalog.py::license_notice()`
 打包时现生成的——所以不存在"忘了放"，也不必手工维护第二份措辞。这份文件只是许可与源码位置的
 说明，不是法律意见。
-★ **为什么不做 `SOURCE-OFFER.md` 那种书面要约**（同日用户驳回后定稿）：那张"三年内书面提供源码"
+★ **为什么不做 `SOURCE-OFFER.md` 那种书面要约**（同日定稿）：那张"三年内书面提供源码"
 的要约卡是**物理分发时代**的遗留，而我们是开源项目、源码就在网上——没有需要"另行提供"的东西，
 于是连名字也不再叫 offer。**解码器仓同日撤掉了它自己的那一枚**：那边的 `raw` 静态链接 LGPL 的
 `rawler`，"重链接材料"是真义务、不是仪式，内容并进了包内 `README.md` 的「许可与源码」一节。
@@ -29,15 +29,16 @@
 | 插件 | 形态 | 直接依赖（实读 `Cargo.toml`） |
 |---|---|---|
 | `checkup` | 命令型（图片体检） | `serde_json` 1、`windows` 0.62（只开 `Win32_Foundation` / `Win32_System_Memory`） |
+| `levels` | 命令型（色阶分析） | `serde_json` 1、`windows` 0.62（同上两个 feature）；**零新增 crate**——PNG 编码、CRC32、Adler-32 与 base64 均在本插件内实现 |
 | `scan` | 命令型（条码识别） | `serde_json` 1、`windows` 0.62（同上两个 feature）、**`rxing` 0.6**（ZXing 的 Rust 移植，`default-features = false`） |
 
 ★ **`scan` 为什么关默认特性**：rxing 的 `default` 含 `image` + `image_formats`，会拖进一整套
 图片解码栈（png / jpeg / avif / tiff…）。插件**不解文件**——像素是宿主解好给的（AGENTS §一.2
 「不依赖解码器」），关掉之后依赖树仍然有 **87 枚**包（`chrono-tz` 是 rxing 解析 DataMatrix/Aztec
-日期段的非可选依赖，砍不掉），`scan.exe` 因此是两枚插件里最大的一枚。这笔账写在这里，
+日期段的非可选依赖，砍不掉），`scan.exe` 因此是三枚插件里最大的一枚。这笔账写在这里，
 是为了下次有人说"顺手加个解码库"时能看见代价。
 
-★ **不随包任何外部可执行文件**：今天两枚插件的产物只有各自的 `<id>.exe` +
+★ **不随包任何外部可执行文件**：今天三枚插件的产物只有各自的 `<id>.exe` +
 `manifest.json`（打包时附带 `README.md` / `LICENSE` 这类人读文件）。条码解码走的是**编进
 `scan.exe` 的 Rust crate**，不是随包一枚外部 CLI——所以本节不需要"外部工具"那一节。
 若将来真要随包，必须先在本文件立一节登记来源 / 版本 / 许可证 / 获取方式（AGENTS §三.7）。

@@ -14,7 +14,7 @@
     { "key": "hotkey", "label": "快捷键", "type": "hotkey", "default": "" }
   ],
   "platforms": ["windows-x64"],
-  "description": "识别当前图片里的条码与二维码（一维码 / QR / DataMatrix / Aztec / PDF417），逐条列出内容与载荷类型；默认只列出，勾上设置里的「解码后直接打开网址 / 图片」才交给系统默认程序",
+  "description": "识别当前图片里的条码与二维码（一维码 / QR / DataMatrix / Aztec / PDF417），逐条列出内容与载荷类型；默认只列出，勾上设置里的「解码后直接打开网址 / 图片」才打开（网址交系统浏览器，图片由宿主开新窗显示）",
   "author": "RuPix",
   "license": "MIT",
   "released": "2026-10-31"

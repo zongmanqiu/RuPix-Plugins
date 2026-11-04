@@ -25,8 +25,14 @@
    不落源码目录。默认落点：
    - 构建中间产物 → `../.temp/plugin-target/`
    - 发布暂存 → `../.temp/plugin-dist/`
+   - 打包暂存 → `../.temp/plugin-stage/`（7-Zip 从这里取文件）
    - 宿主镜像 → `../.build/docs/<id>_<ver>.zip`
 6. **单向关系**：本仓库 → 发布目录 → 宿主扩展目录。插件不得反向写宿主源码。
+7. **发布 ZIP 一律由 7-Zip 生成**（2026-11-04）：`tools/make_catalog.py` 调 `7z` / `7za` /
+   `7zz`（或 `RUPIX_7Z` 指到可执行文件）打 `-tzip -mx=9` 的**标准 ZIP**，压缩率高于默认
+   Deflate；找不到工具直接报错退出，**不退回 Python `zipfile` 直接写包**。打包前把暂存目录
+   （含目录自身）的 mtime 压到 `1980-01-01`，并用 `-mtm/-mta/-mtc=off` 关掉高精度时间字段，
+   保住"同内容同字节"。规则与实测见 `docs/releasing.md`，前置依赖见 `docs/building.md`。
 
 ## 二、插件形态（硬）
 

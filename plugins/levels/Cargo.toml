@@ -1,0 +1,20 @@
+[package]
+name = "rupix-plugin-levels"
+version = "0.1.5"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde_json = "1"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_System_Memory",
+] }
+
+# 零新依赖是这枚插件的设计目标：统计是整数累加，画图是往 RGBA 缓冲里填矩形，
+# PNG 用自己写的 stored-deflate + CRC32 + base64（见 src/png.rs）。
+# 引 png / flate2 也能做到，但"画图不需要额外工具"这件事必须用产物来证明。
+
+[profile.release]
+opt-level = "z"
+strip = true

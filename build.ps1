@@ -9,6 +9,20 @@ $workspace = Split-Path $root -Parent
 $plugins = Join-Path $root "plugins"
 $distRoot = Join-Path $workspace ".temp\plugin-dist"
 
+# Source-path fingerprint: keep the author disk out of shipped DLLs. rustc writes
+# absolute paths into panic locations / debug info, and a portable product must not
+# ship "<repo>\plugins\.." or "%USERPROFILE%\.rustup\..". --remap-path-prefix is a
+# plain prefix replacement.
+# NOTE: this repo pins NO rustflags (no .cargo\config.toml anywhere), so there is no
+# +crt-static to carry over - and none is added here: the link mode is a product
+# decision, not a side effect of a privacy fix. Only one thing travels: the remap.
+# NOTE: only set when absent so a caller can override.
+if (-not $env:USERPROFILE) { $env:USERPROFILE = "$env:SystemDrive\Users\$env:USERNAME" }
+if (-not $env:RUSTFLAGS) {
+    $env:RUSTFLAGS = ("--remap-path-prefix={0}=. --remap-path-prefix={1}=~" -f $root, $env:USERPROFILE)
+}
+
+
 if (-not (Test-Path $plugins)) {
     Write-Error "plugins/ not found: $plugins"
     exit 1
