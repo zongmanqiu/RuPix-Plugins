@@ -104,3 +104,10 @@
 每个插件一个 ZIP：`<id>_<ver>.zip`，内含 `manifest.json` + 入口 exe + `README.md` /
 `LICENSE` 等人读文件。清单 `plugins.json` 由 `tools/make_catalog.py` 生成，
 下载地址指向发布仓的 release 资产（tag = `<id>_<version>`，资产 = 同名 zip）。
+
+**安装落点**：普通用户在宿主「设置 → 插件 → 可下载」点「下载」即可；手工安装时把 ZIP
+**整个解压成一层目录**放进 exe 同级的 `plugins/`，形状是
+`<exe>/plugins/<id>/manifest.json` + 入口 exe + `settings.json`（宿主代存的插件私有设置区）。
+★ 别把 ZIP 平铺进 `plugins/`：宿主按"目录里有没有 `manifest.json`"发现插件（§6 第 1 步），
+散落的 exe 不算插件。`<exe>/docs/` 里同名的 ZIP 是离线兜底包——宿主默认走远程清单，
+取不到才回退本地那份。
