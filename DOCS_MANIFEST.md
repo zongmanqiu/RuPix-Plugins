@@ -4,7 +4,7 @@
 
 | 文件 | 何时更新 | 谁验证 |
 |---|---|---|
-| `README.md` | 仓库定位、**发布表**、目录树、文档索引变化（门面页，技术细则一律去 `docs/`） | `python tools/check_docs.py`（第 4 查逐格对 `plugins.json`）+ 自检 |
+| `README.md` | 仓库定位、**发布表**（大小 `x.xx MB`，1 MB = 1024² B）、目录树、文档索引变化（门面页，技术细则一律去 `docs/`） | `python tools/check_docs.py`（第 4 查按 `fmt_size_mb` 换算对 `plugins.json`）+ 自检 |
 | `AGENTS.md` | 仓库边界、插件形态、安全底线、构建规则变化 | `python tools/check_manifests.py` + 自检 |
 | `插件开发规范.md` | manifest / 能力 / 协议 / 超时 / 版本 / 安全变化 | 与 `protocol/` 交叉核对 |
 | `开发指南.md` | 新增、构建、验收、发布、改协议顺序变化 | 自检 |

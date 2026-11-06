@@ -73,8 +73,11 @@
 - 一键入口：`powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1`
 - **文档门禁**：`python tools/check_docs.py`（**五问**：相对链接可达 / 每份文档在 `DOCS_MANIFEST.md`
   登记 / 正文无本机绝对路径（围栏代码块豁免）/ 根 `README.md` 的「发布插件」门面表与
-  `plugins.json` **逐格判等值**（id 集合、版本、形态、字节数、日期、两条下载地址）/
+  `plugins.json` **逐格判等值**（id 集合、版本、形态、大小、日期、两条下载地址）/
   每枚插件三份人读文件齐备 + HISTORY 标题格式与首条三字段对齐）。
+  ★ 清单 `size` 恒为 ZIP **字节**（宿主也按字节读），只有门面表换算成 `x.xx MB`
+  （1 MB = 1024² B，与宿主 `fmt_bytes` 同制）；换算函数 `check_docs.py::fmt_size_mb`
+  只有一份，README 与门禁共用，别在别处手抄第二份数字。
   ★ 数字抄进 README 是**刻意的门面**（用户从 README 找下载地址，与解码器仓同一口径），
   但它必须有守卫——只靠注释互指的两份数字一定会漂；失败臂由 `--selftest` 自证，
   "表里一行都没扫到"判**失败**不算通过。

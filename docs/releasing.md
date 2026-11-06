@@ -83,7 +83,7 @@
 | `kind` | 是 | manifest | `command` / `editor` / `panel` ⇒ 决定走哪条调用路径 |
 | `file` | 是 | 生成器（`<id>_<version>.zip`） | ZIP 文件名；**含 `/`、`\` 或 `..` 直接判清单坏** |
 | `min_host` | 否 | manifest | 宿主版本低于它 ⇒ 入口整体关闭（置灰标原因）；缺省空串当"不限" |
-| `size` | 否 | 生成器（ZIP 字节数） | **只作显示**；2026-11-02 起不参与任何判定 |
+| `size` | 否 | 生成器（ZIP 字节数） | **只作显示**；2026-11-02 起不参与任何判定。宿主按字节自适应 KB/MB/GB，根 README 门面表按 1 MB = 1024² B 换算成两位小数 |
 | `description` | 否 | manifest | 「!」信息窗那一行 |
 | `capabilities` | 否 | manifest | 信息窗列能力；宿主按 manifest（已装的那份）判定给不给通道 |
 | `released` | 否 | manifest | 信息窗的发行日期 |
@@ -110,8 +110,10 @@
   有没有货来收，缺产物打印 `skip` 而不是静默略过 ⇒ "少了一枚"这件事在构建输出里就看得见。
 - **根 `plugins.json` 与 `.build/docs/plugins.json` 是同一次生成的两份**：仓根那份入库给源码
   读者看，`.build/docs/` 那份随宿主分发（离线兜底）。★ 清单里数字的真源只有 `plugins.json`；
-  根 README 的「发布插件」表是**门面**，由 `python tools/check_docs.py` 第 4 查逐格判等值
-  （版本 / 形态 / 字节数 / 日期 / 两条地址），漂了就红灯——**不许再往别处抄第三份**。
+  根 README 的「发布插件」表是**门面**，由 `python tools/check_docs.py` 第 4 查按显示口径判等值
+  （版本 / 形态 / 大小 / 日期 / 两条地址），漂了就红灯——**不许再往别处抄第三份**。
+  大小列唯一口径：`fmt_size_mb(清单 size)` = `x.xx MB`，1 MB = 1024² B、两位小数；
+  清单与宿主仍按字节，换算只发生在门面表，别把 MB 值写回清单或别处。
 
 ## 5. 发布检查单
 

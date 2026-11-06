@@ -9,13 +9,13 @@
 
 | 插件 | 版本 | 形态 | ZIP 大小 | 发行日期 | Gitee | GitHub |
 |---|---:|---:|---:|---:|---|---|
-| `checkup`（图片体检） | 0.1.0 | 命令型 | 140,159 B | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip) |
-| `scan`（条码识别） | 0.1.0 | 命令型 | 798,029 B | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) |
-| `levels`（色阶分析） | 0.1.6 | 命令型 | 125,708 B | 2026-11-06 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/levels_0.1.6/levels_0.1.6.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/levels_0.1.6/levels_0.1.6.zip) |
-| `channels`（通道调色） | 0.1.1 | 编辑型 | 108,679 B | 2026-11-06 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/channels_0.1.1/channels_0.1.1.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/channels_0.1.1/channels_0.1.1.zip) |
+| `checkup`（图片体检） | 0.1.0 | 命令型 | 0.13 MB | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/checkup_0.1.0/checkup_0.1.0.zip) |
+| `scan`（条码识别） | 0.1.0 | 命令型 | 0.76 MB | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) |
+| `levels`（色阶分析） | 0.1.6 | 命令型 | 0.12 MB | 2026-11-06 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/levels_0.1.6/levels_0.1.6.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/levels_0.1.6/levels_0.1.6.zip) |
+| `channels`（通道调色） | 0.1.1 | 编辑型 | 0.10 MB | 2026-11-06 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/channels_0.1.1/channels_0.1.1.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/channels_0.1.1/channels_0.1.1.zip) |
 
-表中数字与地址抄自 [`plugins.json`](plugins.json)（真源在清单里），由
-`python tools/check_docs.py` 逐格对账。发布与上架步骤见 [`docs/releasing.md`](docs/releasing.md)。
+表中数字与地址以 [`plugins.json`](plugins.json) 为真源（大小按 1 MB = 1024² B 换算），
+由 `python tools/check_docs.py` 对账。发布与上架步骤见 [`docs/releasing.md`](docs/releasing.md)。
 
 ## 仓库结构
 

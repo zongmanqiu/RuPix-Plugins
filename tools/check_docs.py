@@ -8,7 +8,8 @@ Five questions, all mechanical (no semantic guessing):
 2. Every `.md` in the repo root / docs/ has a row in DOCS_MANIFEST.md.
 3. No absolute local path (drive letter or /home/…) leaked into a doc.
 4. The README "发布插件" table matches plugins.json row for row (id set, version,
-   kind, exact bytes, release date, both mirror download URLs).
+   kind, size shown in MB, release date, both mirror download URLs). The catalog
+   keeps `size` in bytes; only the facade converts it (see `fmt_size_mb`).
 5. Every plugin directory ships the three human-readable files the guide requires
    (`README.md` / `HISTORY.md` / `LICENSE`); every HISTORY heading uses
    `## <version> — <date> — protocol N`, and the first entry agrees with the
@@ -41,6 +42,22 @@ ROW_ID = re.compile(r"^`([^`]+)`")
 ROW_URL = re.compile(r"\]\((https?://[^)]+)\)")
 # manifest 的 kind 是机器名，README 用中文门面词；映射写在这里，两边各只有一处定义。
 KIND_LABEL = {"command": "命令型", "editor": "编辑型", "panel": "面板型"}
+
+# 门面表的大小单位：清单 `size` 恒为 ZIP 字节数（真源，宿主也按字节读），
+# 只有给人看的那张表换算成 MB。1 MB = 1024² B，与宿主 `core::util::fmt_bytes` 同一制；
+# 两位小数才分得开 0.10 / 0.12 / 0.13 MB 这几枚。换算函数只有这一份，README 与门禁共用。
+MB = 1024 * 1024
+
+
+def fmt_size_mb(size: object) -> str:
+    """清单字节 → 门面表显示值。非法值返回一个不可能与 README 相等的标记，判红而不是失明。"""
+    try:
+        n = int(size)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return "<size 不是整数>"
+    if n < 0:
+        return "<size 为负>"
+    return f"{n / MB:.2f} MB"
 
 
 def tracked_docs() -> list[Path]:
@@ -162,7 +179,7 @@ def check_release_table(readme: Path, catalog_path: Path) -> list[str]:
         want = {
             "版本": str(entry.get("version", "")),
             "形态": KIND_LABEL.get(entry.get("kind", ""), entry.get("kind", "")),
-            "大小": f"{int(entry.get('size', -1)):,} B",
+            "大小": fmt_size_mb(entry.get("size")),
             "日期": str(entry.get("released", "")),
         }
         got = {"版本": cells[1], "形态": cells[2], "大小": cells[3], "日期": cells[4]}
@@ -282,7 +299,8 @@ def selftest() -> int:
             "id": "alpha",
             "version": "1.2.0",
             "kind": "command",
-            "size": 123456,
+            # 取 500000：1024² 制是 0.48 MB、1e6 制是 0.50 MB，两种换算在这里分得开。
+            "size": 500000,
             "released": "2026-01-02",
             "gitee": "https://gitee.com/o/RuPix-Plugins/releases/download/alpha_1.2.0/alpha_1.2.0.zip",
             "github": "https://github.com/o/RuPix-Plugins/releases/download/alpha_1.2.0/alpha_1.2.0.zip",
@@ -295,7 +313,7 @@ def selftest() -> int:
         def row_of(e: dict) -> str:
             return (
                 f"| `{e['id']}`（示例） | {e['version']} | {KIND_LABEL.get(e['kind'], e['kind'])} | "
-                f"{e['size']:,} B | {e['released']} | [下载]({e['gitee']}) | [下载]({e['github']}) |"
+                f"{fmt_size_mb(e['size'])} | {e['released']} | [下载]({e['gitee']}) | [下载]({e['github']}) |"
             )
 
         cat = tmp / "plugins.json"
@@ -326,6 +344,20 @@ def selftest() -> int:
         empty_cat = tmp / "empty.json"
         empty_cat.write_text("[]", encoding="utf-8")
         cases.append(("清单为空也要报（不当通过）", len(check_release_table(rm, empty_cat)) == 1))
+
+        # 门面表的大小是换算值：单位写回 B、用十进制 MB、精度少一位都要报。
+        def size_typo(text: str) -> list[str]:
+            good_row = row_of(entry)
+            rm.write_text(readme_of(good_row.replace(fmt_size_mb(entry["size"]), text)), encoding="utf-8")
+            return check_release_table(rm, cat)
+
+        cases.append(("大小写回字节 B 要报", len(size_typo(f"{entry['size']:,} B")) == 1))
+        cases.append(("大小按十进制 MB 换算要报", len(size_typo(f"{entry['size'] / 1e6:.2f} MB")) == 1))
+        cases.append(("大小精度少一位要报", len(size_typo(f"{entry['size'] / MB:.1f} MB")) == 1))
+        # 清单里 size 坏了不能算通过：fmt_size_mb 给的标记绝不会与 README 相等。
+        cat.write_text(json.dumps([dict(entry, size="oops")], ensure_ascii=False), encoding="utf-8")
+        rm.write_text(readme_of(row_of(entry)), encoding="utf-8")
+        cases.append(("清单 size 非整数要判红不失明", len(check_release_table(rm, cat)) == 1))
 
     cases.append(("本仓现状要扫得到货", len(tracked_docs()) >= 5))
     live = check_release_table(ROOT / "README.md", ROOT / "plugins.json")
