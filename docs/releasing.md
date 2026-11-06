@@ -8,8 +8,9 @@
 1. **改版本**：`plugins/<id>/manifest.json` 的 `version` 递增（只增不回退；
    语义化不强制，但同一版本号不许换内容——已发布资产按 tag 冻结），
    **同一次**在 `plugins/<id>/HISTORY.md` 顶部加一条 `## <新版本> — <日期> — protocol N`，
-   写这一版对外变了什么（发 release 时那段说明就从这里抄）。漏加由
-   [`check_docs.py`](testing.md) 第 5 查判红。
+   写这一版对外变了什么（发 release 时那段说明就从这里抄）。漏加、标题格式不对、
+   首条三字段与 manifest 不符、或 `README.md` / `HISTORY.md` / `LICENSE` 少一份，
+   都由 [`check_docs.py`](testing.md) 第 5 查判红（开发指南 §一 第 3/4 步）。
 2. **构建**：根 `build.ps1` 全绿（四条门禁 + 各插件单测）。
 3. **产出**：`../.build/docs/<id>_<ver>.zip` 与 `plugins.json`（两份清单会同时更新：
    `.build/docs/` 里给宿主用，仓根那份入库给源码读者看）。ZIP 内除 `manifest.json` + 入口外，
@@ -40,12 +41,12 @@
 
 ★ **打包仍是确定性的**：`pack_zip()` 在打包前把暂存目录（含目录自身）的 mtime 压到
 `1980-01-01`，再关掉高精度时间戳字段；同内容连打两次逐字节一致（实测）。
-**2026-11-04 已全量重打并上架（Gitee）**：`../.build/docs/` 三枚 ZIP 均由 7-Zip 生成，
+**2026-11-04 已全量重打并上架（Gitee）**：当时 `../.build/docs/` 的三枚 ZIP 均由 7-Zip 生成，
 `plugins.json` 的 `size` 与根 README 门面表已同步到新字节数（`check_docs.py` 第 4 查判
 等值），并经 Gitee OpenAPI 传到各自的 `<id>_<version>` tag：已有的替换同名附件，
 `levels_0.1.5` 新建 tag；**release 说明统一取该插件 `HISTORY.md` 里对应版本那一条**。
 宿主按 `id` + `version` 识别，不会因压缩器不同而拒收。上面第 4 步说的**两个镜像都要传**
-仍是规则：**2026-11-04 晚 GitHub 镜像也已同步到位**——三枚 ZIP 换成同一批 7-Zip 产物，
+仍是规则：**2026-11-04 晚 GitHub 镜像也已同步到位**——当时的三枚 ZIP 换成同一批 7-Zip 产物，
 已有的 tag 覆盖同名附件，`levels_0.1.5` 在已存在的 tag 上新建 release；说明同样取该插件
 `HISTORY.md` 里对应版本那一条。两侧资产与说明按 tag 逐一对齐。
 
@@ -93,7 +94,7 @@
 - **远程优先、本地兜底**：点「下载」先按所选来源联网；联网失败而 `docs/<file>` 里有同一枚包
   ⇒ 用本地那份装（404 不该把用户卡死）。两条都没有才报"这一枚在当前来源还没有发布地址"。
 - **单枚 ZIP 上限 512 MiB**（宿主 `extensions::install::MAX_BYTES`）：超了直接拒收，
-  不是"慢一点"。今天三枚都在 1 MiB 量级。
+  不是"慢一点"。今天四枚都在 1 MiB 量级。
 - **`gitee` 是主源、`github` 由它推导**：两个镜像的 **owner 不同**（Gitee `qiuzongman` /
   GitHub `zongmanqiu`），推导时**主机名与 owner 一起换**。`released` 与 `gitee` 由人填。
 - **仓库名是复数 `RuPix-Plugins`，本地目录是单数 `RuPix-Plugin/`**；默认分支 `main`。
@@ -111,8 +112,9 @@
 ## 5. 发布检查单
 
 - [ ] 各插件 `version` 已递增，`id` 与目录名一致
-- [ ] 每枚插件的 `HISTORY.md` 顶部已加本次版本那一条（首条版本 = manifest、日期 = `released`）
-- [ ] `build.ps1` 全绿（manifests / licenses / docs / 单测）
+- [ ] 每枚插件三份人读文件齐备、`HISTORY.md` 顶部已加本次版本那一条
+      （标题 `## <版本> — <日期> — protocol N`；首条版本 / 日期 / protocol = manifest）
+- [ ] `build.ps1` 全绿（manifests / licenses / **secrets** / docs / 单测）
 - [ ] 冒烟两腿通过（见 [`testing.md`](testing.md) §3）
 - [ ] 真机四条通过（§4）
 - [ ] ZIP 已上传到 `<id>_<version>` tag

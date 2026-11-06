@@ -165,7 +165,9 @@ impl Histogram {
              - **三通道均值**：R {mr:.1} / G {mg:.1} / B {mb:.1} → {tint}。\n\
              - **读法**：柱子贴左边 = 暗部糊成死黑；贴右边 = 高光死白、细节丢了；\
              山形居中且两头不贴边 = 明暗都有内容。\n\
-             - **纵轴**：四格共用同一纵轴，满格 = 四组里最大的那一箱（{gpeak} 点）。\n\
+             - **纵轴**：四格共用同一纵轴，满格 = 四组里最大的那一箱（{gpeak} 点，\
+             占实际统计 {counted} 点的 {gpeak_pct}）；图上五条刻度（基线 0.00% 起）标的是占全图的百分比，\
+             理论上限 100%（所有可见像素落在同一箱）。\n\
              - **图形**：{chart}。\n",
             w = self.width,
             h = self.height,
@@ -185,6 +187,7 @@ impl Histogram {
             mb = means[2],
             tint = tint,
             gpeak = self.global_peak(),
+            gpeak_pct = pct(self.global_peak() as u64),
             chart = chart,
         )
     }
@@ -274,5 +277,17 @@ mod tests {
             on.split("三通道均值").next(),
             off.split("三通道均值").next()
         );
+    }
+
+    #[test]
+    fn report_names_the_axis_denominator_and_the_theoretical_ceiling() {
+        // 2x2 纯红：四组峰值箱都是 4 点，counted=4 ⇒ 满格 100.00%。
+        let r = raster(&[[255, 0, 0, 255]; 4], 2, 2);
+        let on = Histogram::accumulate(&r).report(true);
+        assert!(on.contains("4 点，占实际统计 4 点的 100.00%"), "{on}");
+        assert!(on.contains("理论上限 100%"), "{on}");
+        // 关掉图形同样不许改动任何一个纵轴数字。
+        let off = Histogram::accumulate(&r).report(false);
+        assert!(off.contains("4 点，占实际统计 4 点的 100.00%"), "{off}");
     }
 }

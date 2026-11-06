@@ -1,0 +1,19 @@
+[package]
+name = "rupix-plugin-channels"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Per-channel colour editor. Runs out of process; the host sends the whole image
+# through shared memory and receives a NEW mapping with the edited pixels.
+[dependencies]
+serde_json = "1"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Memory",
+] }
+
+[profile.release]
+opt-level = "z"
+strip = true

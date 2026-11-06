@@ -15,7 +15,8 @@ build.ps1
  ├─ python tools/check_manifests.py     # manifest 结构/字段/能力白名单/id=目录名
  ├─ python tools/check_licenses.py      # 供应链：每个插件的解析依赖都必须有可再分发的许可证
  ├─ python tools/check_secrets.py       # 无密钥/无隐私：私钥块 / 令牌 / URL 凭据 / 口令字面量 / 邮箱 / 含真名路径
- ├─ python tools/check_docs.py          # 文档：链接可达 + 清单登记 + 不写本机绝对路径 + README 门面表对账
+ ├─ python tools/check_docs.py          # 文档五查：链接可达 + 清单登记 + 不写本机绝对路径
+ │                                       #            + README 门面表对账 + 插件三份人读文件/HISTORY 格式
  ├─ 逐个 plugins/<id>/build.ps1         # cargo test --release → cargo build --release
  │   └─ 产物 → ../.temp/plugin-dist/<id>/{<entry>.exe, manifest.json}
  └─ python tools/make_catalog.py        # 用 7-Zip 打包 ../.build/docs/<id>_<ver>.zip + plugins.json
@@ -57,7 +58,9 @@ Deflate，实测见 [`releasing.md`](releasing.md)）。文件名与包内结构
 
 1. 建 `plugins/<id>/`：`manifest.json` + 入口源码 + `build.ps1` + `LICENSE` + `README.md` + `HISTORY.md`。
 2. `manifest.json` 的 `id` 必须**等于目录名**（门禁会查），入口必须是目录内相对路径的 `.exe`；
-   `HISTORY.md` 的首条版本必须等于 manifest 的 `version`（`check_docs.py` 第 5 查会判）。
+   `README.md` / `HISTORY.md` / `LICENSE` 三份齐备，HISTORY **每条**标题写成
+   `## <版本> — <日期> — protocol N`，首条的版本 / 日期 / protocol 与 manifest 对齐
+   ——都由 `check_docs.py` 第 5 查判（开发指南 §一 第 3/4 步）。
 3. 如果声明了 `settings`，必须同时声明 `settings.read` + `settings.write`
    （`settings_ui` 那条老路与它二选一）。
 4. 引入任何第三方依赖前先读 [`licensing.md`](licensing.md)：进不了白名单＝判不采用。

@@ -71,9 +71,10 @@
 ## 四、构建与发布（硬）
 
 - 一键入口：`powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1`
-- **文档门禁**：`python tools/check_docs.py`（四问：相对链接可达 / 每份文档在 `DOCS_MANIFEST.md`
+- **文档门禁**：`python tools/check_docs.py`（**五问**：相对链接可达 / 每份文档在 `DOCS_MANIFEST.md`
   登记 / 正文无本机绝对路径（围栏代码块豁免）/ 根 `README.md` 的「发布插件」门面表与
-  `plugins.json` **逐格判等值**（id 集合、版本、形态、字节数、日期、两条下载地址））。
+  `plugins.json` **逐格判等值**（id 集合、版本、形态、字节数、日期、两条下载地址）/
+  每枚插件三份人读文件齐备 + HISTORY 标题格式与首条三字段对齐）。
   ★ 数字抄进 README 是**刻意的门面**（用户从 README 找下载地址，与解码器仓同一口径），
   但它必须有守卫——只靠注释互指的两份数字一定会漂；失败臂由 `--selftest` 自证，
   "表里一行都没扫到"判**失败**不算通过。
@@ -87,10 +88,12 @@
   它的失败臂由 `--selftest` 自证。
 - **每枚插件目录三份人读文件**：`plugins/<id>/README.md`（当前能力与限制）、
   **`plugins/<id>/HISTORY.md`（版本历史，发 release 的说明文字从这里抄）**、`LICENSE`。
-  ★ 前两份由 `tools/check_docs.py` 第 5 查判存在与对齐：**首条 `## <版本>` = manifest 的
-  `version`，同一条里要有 `released` 的日期**，条目里**不许**写发布进度
-  （`待上传` / `未发布` / `release tag` / ZIP 是否生成——那些的真源是 `plugins.json`）。
-  改 `version` 必须**同一次**加一条历史，否则门禁红。
+  ★ **三份都由** `tools/check_docs.py` 第 5 查判存在：`make_catalog.py` 对缺件是
+  「存在才拷」的静默跳过，少一份 ZIP 就不完整而构建照样全绿。同一查还判 HISTORY
+  **每条**标题 `## <版本> — <日期> — protocol N`（破折号两侧各一空格）、首条的版本 /
+  日期 / protocol = manifest 的 `version` / `released` / `protocol`；条目里**不许**写
+  发布进度（`待上传` / `未发布` / `release tag` / ZIP 是否生成——那些的真源是 `plugins.json`）。
+  改 `version` 必须**同一次**加一条历史，否则门禁红。加判据必须配 `--selftest` 负向夹具。
 - 每个插件目录可有自己的 `build.ps1`；根脚本负责顺序调用、校验 manifest、
   汇总产物。
 - 发布产物形态：

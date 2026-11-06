@@ -122,6 +122,121 @@ def check_manifest(path: Path, dir_name: str, seen: set[str], errors: list[str])
         elif data["settings_ui"] and "settings.write" not in caps:
             fail(errors, path, "settings_ui=true requires capability settings.write")
 
+    # `run_ui` = host renders the parameter dialog at RUN time (additive field).
+    settings = data.get("settings", [])
+    if "run_ui" in data:
+        if not isinstance(data["run_ui"], bool):
+            fail(errors, path, "run_ui must be a boolean")
+        elif data["run_ui"] and not (isinstance(settings, list) and settings):
+            fail(errors, path, "run_ui=true requires a non-empty settings array")
+    if isinstance(settings, list):
+        for i, item in enumerate(settings):
+            if not isinstance(item, dict):
+                continue
+            lo, hi = item.get("min"), item.get("max")
+            if (lo is None) != (hi is None):
+                fail(errors, path, f"settings[{i}]: min/max must come in pairs")
+            elif lo is not None:
+                ints = all(
+                    isinstance(v, int) and not isinstance(v, bool) for v in (lo, hi)
+                )
+                if not ints or lo >= hi:
+                    fail(
+                        errors,
+                        path,
+                        f"settings[{i}]: min/max must be integers with min < max",
+                    )
+
+    # `preview` = declarative live preview (additive). Its keys must point at
+    # slider-backed int settings: the host reads 0..1 slider signals, not text.
+    if "preview" in data:
+        prev = data["preview"]
+        if not isinstance(prev, dict):
+            fail(errors, path, "preview must be an object")
+        else:
+            if prev.get("op") != "channel-linear":
+                fail(errors, path, "preview.op must be channel-linear")
+            keys = {}
+            if isinstance(settings, list):
+                keys = {
+                    it["key"]: it
+                    for it in settings
+                    if isinstance(it, dict) and isinstance(it.get("key"), str)
+                }
+            for field in ("gain", "bias"):
+                arr = prev.get(field)
+                if not isinstance(arr, list) or len(arr) != 3 or not all(
+                    isinstance(k, str) for k in arr
+                ):
+                    fail(errors, path, f"preview.{field} must be exactly 3 key names")
+                    continue
+                for k in arr:
+                    it = keys.get(k)
+                    if it is None:
+                        fail(errors, path, f"preview.{field}: {k!r} is not in settings")
+                    elif it.get("type") != "int" or "min" not in it or "max" not in it:
+                        fail(errors, path, f"preview.{field}: {k!r} must be an int with min/max")
+
+    # `presets` = declarative filter table (additive). The host writes the six
+    # slider values when a preset is chosen, so numbers must land inside the
+    # declared slider ranges and every name must exist in a choice setting.
+    if "presets" in data:
+        table = data["presets"]
+        if not isinstance(table, dict):
+            fail(errors, path, "presets must be an object")
+        else:
+            choice_values = None
+            if isinstance(settings, list):
+                for it in settings:
+                    if isinstance(it, dict) and it.get("type") == "choice":
+                        choice_values = it.get("choices")
+                        break
+            if not isinstance(choice_values, list):
+                fail(errors, path, "presets requires a choice setting")
+            else:
+                if len(table) >= len(choice_values):
+                    fail(
+                        errors,
+                        path,
+                        "presets must leave one choice value as the custom sentinel",
+                    )
+            key_map = {}
+            if isinstance(settings, list):
+                key_map = {
+                    it["key"]: it
+                    for it in settings
+                    if isinstance(it, dict) and isinstance(it.get("key"), str)
+                }
+            prev = data.get("preview")
+            for name, body in table.items():
+                if isinstance(choice_values, list) and name not in choice_values:
+                    fail(errors, path, f"presets: {name!r} is not in choice.choices")
+                if name == "custom":
+                    fail(errors, path, "presets: 'custom' is the sentinel, no numbers")
+                if not isinstance(body, dict):
+                    fail(errors, path, f"presets.{name} must be an object")
+                    continue
+                for field in ("gain", "bias"):
+                    arr = body.get(field)
+                    if not isinstance(arr, list) or len(arr) != 3 or not all(
+                        isinstance(v, int) and not isinstance(v, bool) for v in arr
+                    ):
+                        fail(errors, path, f"presets.{name}.{field} must be 3 integers")
+                        continue
+                    names = prev.get(field) if isinstance(prev, dict) else None
+                    for i, v in enumerate(arr):
+                        key = names[i] if isinstance(names, list) and len(names) == 3 else None
+                        it = key_map.get(key) if isinstance(key, str) else None
+                        if it is None:
+                            continue  # preview gate already owns this failure
+                        lo, hi = it.get("min"), it.get("max")
+                        if isinstance(lo, int) and isinstance(hi, int) and not (lo <= v <= hi):
+                            fail(
+                                errors,
+                                path,
+                                f"presets.{name}.{field}[{i}]={v} outside {lo}..{hi}",
+                            )
+
     for key in ("description", "author"):
         if key in data and not isinstance(data[key], str):
             fail(errors, path, f"{key} must be a string")

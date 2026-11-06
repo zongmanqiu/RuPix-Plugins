@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "id": "channels",
+  "name": "通道调色",
+  "version": "0.1.1",
+  "protocol": 1,
+  "min_host": "0.1.0",
+  "kind": "editor",
+  "entry": "channels.exe",
+  "capabilities": [
+    "image.read",
+    "image.write",
+    "settings.read",
+    "settings.write"
+  ],
+  "run_ui": true,
+  "settings": [
+    {
+      "key": "preset",
+      "label": "预设",
+      "type": "choice",
+      "choices": [
+        "custom",
+        "invert",
+        "bright",
+        "dark",
+        "contrast",
+        "soft",
+        "warm",
+        "cool",
+        "red",
+        "green",
+        "blue"
+      ],
+      "labels": [
+        "自定义",
+        "反相",
+        "提亮",
+        "压暗",
+        "高对比",
+        "柔化",
+        "暖色",
+        "冷色",
+        "仅红",
+        "仅绿",
+        "仅蓝"
+      ],
+      "default": "custom"
+    },
+    {
+      "key": "r_gain",
+      "label": "红通道增益 (%)",
+      "type": "int",
+      "default": "100",
+      "min": -400,
+      "max": 400
+    },
+    {
+      "key": "g_gain",
+      "label": "绿通道增益 (%)",
+      "type": "int",
+      "default": "100",
+      "min": -400,
+      "max": 400
+    },
+    {
+      "key": "b_gain",
+      "label": "蓝通道增益 (%)",
+      "type": "int",
+      "default": "100",
+      "min": -400,
+      "max": 400
+    },
+    {
+      "key": "r_bias",
+      "label": "红通道偏置",
+      "type": "int",
+      "default": "0",
+      "min": -255,
+      "max": 255
+    },
+    {
+      "key": "g_bias",
+      "label": "绿通道偏置",
+      "type": "int",
+      "default": "0",
+      "min": -255,
+      "max": 255
+    },
+    {
+      "key": "b_bias",
+      "label": "蓝通道偏置",
+      "type": "int",
+      "default": "0",
+      "min": -255,
+      "max": 255
+    },
+    {
+      "key": "hotkey",
+      "label": "快捷键",
+      "type": "hotkey",
+      "default": ""
+    }
+  ],
+  "platforms": [
+    "windows-x64"
+  ],
+  "description": "右键「插件 → 通道调色」或按快捷键打开调色窗：六条滑块控制 R/G/B 的增益与偏置，拖动时看图窗里的图立刻跟着变；关窗即生效，不需要「完成」。预设是一组组数值（滤镜），「反相」就是三通道增益 -100%、偏置 255；拖任一条滑块自动回落「自定义」。窗内「另存为…」存 PNG、「还原」清掉调色。只改显示、不写文件。",
+  "author": "RuPix",
+  "license": "MIT",
+  "released": "2026-11-06",
+  "preview": {
+    "op": "channel-linear",
+    "gain": [
+      "r_gain",
+      "g_gain",
+      "b_gain"
+    ],
+    "bias": [
+      "r_bias",
+      "g_bias",
+      "b_bias"
+    ]
+  },
+  "presets": {
+    "invert": {
+      "gain": [
+        -100,
+        -100,
+        -100
+      ],
+      "bias": [
+        255,
+        255,
+        255
+      ]
+    },
+    "bright": {
+      "gain": [
+        100,
+        100,
+        100
+      ],
+      "bias": [
+        40,
+        40,
+        40
+      ]
+    },
+    "dark": {
+      "gain": [
+        80,
+        80,
+        80
+      ],
+      "bias": [
+        0,
+        0,
+        0
+      ]
+    },
+    "contrast": {
+      "gain": [
+        160,
+        160,
+        160
+      ],
+      "bias": [
+        -77,
+        -77,
+        -77
+      ]
+    },
+    "soft": {
+      "gain": [
+        60,
+        60,
+        60
+      ],
+      "bias": [
+        51,
+        51,
+        51
+      ]
+    },
+    "warm": {
+      "gain": [
+        110,
+        100,
+        85
+      ],
+      "bias": [
+        10,
+        0,
+        0
+      ]
+    },
+    "cool": {
+      "gain": [
+        85,
+        100,
+        110
+      ],
+      "bias": [
+        0,
+        0,
+        10
+      ]
+    },
+    "red": {
+      "gain": [
+        100,
+        0,
+        0
+      ],
+      "bias": [
+        0,
+        0,
+        0
+      ]
+    },
+    "green": {
+      "gain": [
+        0,
+        100,
+        0
+      ],
+      "bias": [
+        0,
+        0,
+        0
+      ]
+    },
+    "blue": {
+      "gain": [
+        0,
+        0,
+        100
+      ],
+      "bias": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

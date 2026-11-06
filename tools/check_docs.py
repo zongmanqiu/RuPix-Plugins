@@ -9,8 +9,10 @@ Five questions, all mechanical (no semantic guessing):
 3. No absolute local path (drive letter or /home/…) leaked into a doc.
 4. The README "发布插件" table matches plugins.json row for row (id set, version,
    kind, exact bytes, release date, both mirror download URLs).
-5. Every plugin directory ships a `HISTORY.md` whose first entry is that plugin's
-   current version and release date — and its entries carry no release-progress
+5. Every plugin directory ships the three human-readable files the guide requires
+   (`README.md` / `HISTORY.md` / `LICENSE`); every HISTORY heading uses
+   `## <version> — <date> — protocol N`, and the first entry agrees with the
+   manifest (version, released, protocol). Entries carry no release-progress
    status (that truth lives in `plugins.json` only).
 
 Exit codes: 0 = clean; 1 = violation, or the gate could not see anything to check.
@@ -181,12 +183,21 @@ def check_release_table(readme: Path, catalog_path: Path) -> list[str]:
 
 RELEASE_WORDS = ("待上传", "未发布", "release tag", "发布包已生成", "等待上传")
 
+# 开发指南 §一 第 3/4 步：每枚插件源码目录必备的三份人读文件。
+# 打包器 make_catalog.py 对缺件是「存在才拷」的静默跳过——少了 README/LICENSE，
+# ZIP 会缺一份而构建照样全绿，所以这一格必须由门禁盯着。
+PLUGIN_DOC_FILES = ("README.md", "HISTORY.md", "LICENSE")
+# 标题格式 = `## <版本> — <日期> — protocol N`（破折号两侧各一个空格）。
+# 判**所有**条目而不只首条：历史里混进一条括号式标题，release 说明照样抄错。
+HISTORY_HEAD = re.compile(r"^## (\S+) — (\d{4}-\d{2}-\d{2}) — protocol (\d+)\s*$")
 
-def check_plugin_history(plugins_dir: Path) -> list[str]:
-    """每枚插件目录都要有 `HISTORY.md`，且首条版本 = manifest 的 `version`。
 
-    ★ 为什么要门禁判而不是写在文档里：这格曾经"没有理由地缺着"——发版的人要的就是这一页
-    （release 说明从这里抄），少了它等于发布流程缺一块材料，而构建照样全绿。
+def check_plugin_docs(plugins_dir: Path) -> list[str]:
+    """插件目录三份人读文件齐不齐、HISTORY 标题格式与 manifest 对不对。
+
+    ★ 为什么要门禁判而不是写在文档里：这几格曾经"没有理由地缺着"——发版的人要的就是
+    这一页（release 说明从这里抄），少了它等于发布流程缺一块材料，而构建照样全绿；
+    标题格式也是 2026-11-07 排查时发现第四枚插件整份写成括号式、门禁却一路放行。
     条目里还禁写发布进度（`待上传` / `未发布` / `release tag` …）：发布状态的真源是
     `plugins.json`，历史只记版本事实——写进历史就变成第二份状态，而且一定过期。
     """
@@ -205,21 +216,29 @@ def check_plugin_history(plugins_dir: Path) -> list[str]:
         except Exception as e:
             bad.append(f"{pid}: manifest 读不出（{e}）")
             continue
+        for name in PLUGIN_DOC_FILES:
+            if not (src / name).is_file():
+                bad.append(f"{pid}: 缺 {name}（开发指南 §一 第 3/4 步的随包必备文件）")
         history = src / "HISTORY.md"
         if not history.is_file():
-            bad.append(f"{pid}: 缺 HISTORY.md（发 release 要抄的就是这一页）")
             continue
         text = history.read_text(encoding="utf-8", errors="replace")
         headings = [ln for ln in text.splitlines() if ln.startswith("## ")]
         if not headings:
             bad.append(f"{pid}: HISTORY.md 里没有任何 `## <版本>` 条目（本查失明）")
             continue
-        want = f"## {meta.get('version')}"
-        if not headings[0].startswith(want):
-            bad.append(f"{pid}: HISTORY 首条是 {headings[0]!r}，manifest 版本是 {meta.get('version')!r}")
-        released = meta.get("released") or ""
-        if released and released not in headings[0]:
-            bad.append(f"{pid}: HISTORY 首条没有发行日期 {released}（应 = manifest 的 released）")
+        for h in headings:
+            if not HISTORY_HEAD.match(h):
+                bad.append(f"{pid}: HISTORY 标题格式不对 {h!r}（应 `## <版本> — <日期> — protocol N`）")
+        # 三字段只在标题合规时比：格式本身已经红了，再叠一条版本不符是噪声。
+        first = HISTORY_HEAD.match(headings[0])
+        if first:
+            for got, key in ((first.group(1), "version"), (first.group(2), "released"),
+                             (first.group(3), "protocol")):
+                raw = meta.get(key)
+                want = "" if raw is None else str(raw)
+                if want and got != want:
+                    bad.append(f"{pid}: HISTORY 首条的 {key} 是 {got!r}，manifest 是 {want!r}")
         # 只判条目区（第一条 `## ` 之后），标题里的政策说明允许提这些词。
         body = text.split(headings[0], 1)[1]
         for word in RELEASE_WORDS:
@@ -236,12 +255,12 @@ def run(docs: list[Path]) -> list[str]:
         + check_registered(docs)
         + check_local_paths(docs)
         + check_release_table(ROOT / "README.md", ROOT / "plugins.json")
-        + check_plugin_history(ROOT / "plugins")
+        + check_plugin_docs(ROOT / "plugins")
     )
 
 
 def selftest() -> int:
-    """失败臂自证：四条检查各自抓得到假样本；本仓现状必须扫得到货。"""
+    """失败臂自证：五条检查各自抓得到假样本；本仓现状必须扫得到货。"""
     import tempfile
 
     cases: list[tuple[str, bool]] = []
@@ -313,43 +332,52 @@ def selftest() -> int:
     cases.append(("本仓 README 表现状无违规", live == []))
     cases.append(("本仓 README 表收得到行", len(release_rows(ROOT / "README.md")) >= 1))
 
-    # 第 5 查：每枚插件的 HISTORY.md。夹具 = 齐全的一份，再逐格破坏。
-    def plugin_fixture(tmp: Path, history: str | None, version: str, released: str) -> Path:
+    # 第 5 查：三份人读文件 + HISTORY 标题格式。夹具 = 齐全的一份，再逐格破坏。
+    def plugin_fixture(tmp: Path, history: str | None, version: str = "1.2.0",
+                       released: str = "2026-01-02", protocol: int = 1,
+                       omit: tuple[str, ...] = ()) -> Path:
         root = tmp / "plugins"
         one = root / "foo"
         one.mkdir(parents=True, exist_ok=True)
         (one / "manifest.json").write_text(
-            json.dumps({"schema": 1, "id": "foo", "version": version, "released": released}),
+            json.dumps({"schema": 1, "id": "foo", "version": version,
+                        "released": released, "protocol": protocol}),
             encoding="utf-8",
         )
-        if history is not None:
+        if "README.md" not in omit:
+            (one / "README.md").write_text("foo plugin", encoding="utf-8")
+        if "LICENSE" not in omit:
+            (one / "LICENSE").write_text("MIT", encoding="utf-8")
+        if history is not None and "HISTORY.md" not in omit:
             (one / "HISTORY.md").write_text(history, encoding="utf-8")
         return root
 
     head = "## 1.2.0 — 2026-01-02 — protocol 1\n\n- **新增**：第一版。\n"
-    with tempfile.TemporaryDirectory() as td2:
-        root = plugin_fixture(Path(td2), head, "1.2.0", "2026-01-02")
-        cases.append(("HISTORY 齐全不误报", check_plugin_history(root) == []))
-    with tempfile.TemporaryDirectory() as td3:
-        root = plugin_fixture(Path(td3), None, "1.2.0", "2026-01-02")
-        cases.append(("缺 HISTORY 要报", len(check_plugin_history(root)) == 1))
-    with tempfile.TemporaryDirectory() as td4:
-        root = plugin_fixture(Path(td4), "## 1.1.0 — 2026-01-02 — protocol 1\n", "1.2.0", "2026-01-02")
-        cases.append(("首条版本不等于 manifest 要报", len(check_plugin_history(root)) == 1))
-    with tempfile.TemporaryDirectory() as td5:
-        root = plugin_fixture(Path(td5), "## 1.2.0 — 2026-01-09 — protocol 1\n", "1.2.0", "2026-01-02")
-        cases.append(("条目日期不等于 released 要报", len(check_plugin_history(root)) == 1))
-    with tempfile.TemporaryDirectory() as td6:
-        root = plugin_fixture(
-            Path(td6), f"## 1.2.0 — 2026-01-02\n\n- **状态**：待上传资产。\n", "1.2.0", "2026-01-02"
-        )
-        cases.append(("条目里写发布进度要报", len(check_plugin_history(root)) == 1))
+
+    def probe(history: str | None = head, omit: tuple[str, ...] = (), **meta) -> list[str]:
+        with tempfile.TemporaryDirectory() as td:
+            return check_plugin_docs(plugin_fixture(Path(td), history, omit=omit, **meta))
+
+    cases.append(("插件三份人读文件齐全不误报", probe() == []))
+    cases.append(("缺 README.md 要报", len(probe(omit=("README.md",))) == 1))
+    cases.append(("缺 LICENSE 要报", len(probe(omit=("LICENSE",))) == 1))
+    cases.append(("缺 HISTORY.md 要报", len(probe(None)) == 1))
+    cases.append(("标题写成括号式要报", len(probe("## 1.2.0（2026-01-02）\n")) == 1))
+    cases.append(("后续条目格式不对也要报",
+                  len(probe(head + "\n## 1.1.0（2026-01-01）\n")) == 1))
+    cases.append(("首条版本不等于 manifest 要报",
+                  len(probe("## 1.1.0 — 2026-01-02 — protocol 1\n")) == 1))
+    cases.append(("首条日期不等于 released 要报",
+                  len(probe("## 1.2.0 — 2026-01-09 — protocol 1\n")) == 1))
+    cases.append(("首条 protocol 不等于 manifest 要报",
+                  len(probe("## 1.2.0 — 2026-01-02 — protocol 2\n")) == 1))
+    cases.append(("条目里写发布进度要报",
+                  len(probe(head.replace("- **新增**：第一版。", "- **状态**：待上传资产。"))) == 1))
     with tempfile.TemporaryDirectory() as td7:
         empty = Path(td7) / "plugins"
         empty.mkdir()
-        cases.append(("扫不到插件 = 失明要报", len(check_plugin_history(empty)) == 1))
-    live_history = check_plugin_history(ROOT / "plugins")
-    cases.append(("本仓 HISTORY 现状无违规", live_history == []))
+        cases.append(("扫不到插件 = 失明要报", len(check_plugin_docs(empty)) == 1))
+    cases.append(("本仓插件目录现状无违规", check_plugin_docs(ROOT / "plugins") == []))
 
     failed = [n for n, ok in cases if not ok]
     for n, ok in cases:

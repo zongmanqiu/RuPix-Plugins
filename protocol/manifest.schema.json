@@ -76,6 +76,35 @@
       "default": false,
       "description": "插件自带设置窗口：宿主在插件卡上给一颗齿轮，以 action=settings 拉起；必须同时声明 settings.write"
     },
+    "run_ui": {
+      "type": "boolean",
+      "default": false,
+      "description": "运行时参数窗（加法式字段）：点插件菜单先由宿主渲染同一套 settings 窗口；声明了 preview 的编辑型拖动即实时生效，「完成」只保存参数；老插件仍按「应用」启动。必须同时声明非空 settings。快捷键仍直接用上次保存的值运行"
+    },
+    "presets": {
+      "type": "object",
+      "description": "声明式滤镜预设（加法式字段）：取值 → {gain:[3 整数], bias:[3 整数]}，顺序 R/G/B。选中时宿主把这六个数写进滑块，效果立刻上屏；拖滑块自动回落「自定义」。键必须都在某个 choice 的 choices 里，并留至少一个不在表里的取值当自定义哨兵；数值必须落在 preview 所指滑块声明的 min/max 内",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["gain", "bias"],
+        "additionalProperties": false,
+        "properties": {
+          "gain": { "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3 },
+          "bias": { "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3 }
+        }
+      }
+    },
+    "preview": {
+      "type": "object",
+      "description": "声明式显示层变换（加法式字段）：宿主按此声明在**看图窗当前显示的位图**上实时演算同一组参数，拖滑块即变色；不再画窗内缩略图。插件的正式整图编辑（image.write）仍服务于不弹窗的路径。缺省 = 不做实时变换",
+      "required": ["op", "gain", "bias"],
+      "additionalProperties": false,
+      "properties": {
+        "op": { "enum": ["channel-linear"], "description": "通道线性变换：out = clamp(in * gain/100 + bias)，i64 整除向零截断" },
+        "gain": { "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3, "description": "settings 里三个增益项的 key，顺序 R/G/B；必须是带 min/max 的 int" },
+        "bias": { "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3, "description": "settings 里三个偏置项的 key，顺序 R/G/B；必须是带 min/max 的 int" }
+      }
+    },
     "settings": {
       "type": "array",
       "description": "声明式设置项（协议 v1 加法式新增）：给了它，宿主**自己渲染**设置窗（齿轮 → 宿主窗口），不再以 action=settings 拉起插件；与 settings_ui 二选一。必须同时声明 settings.read 与 settings.write。type=hotkey 的那一项就是该插件的动态热键。",
@@ -91,6 +120,14 @@
           },
           "label": { "type": "string", "minLength": 1 },
           "type": { "enum": ["bool", "choice", "int", "text", "hotkey"] },
+          "min": {
+            "type": "integer",
+            "description": "仅 type=int：与 max 成对出现，宿主把这一格渲染成滑块 + 实时数值而不是文本框"
+          },
+          "max": {
+            "type": "integer",
+            "description": "仅 type=int：必须大于 min；default 落在区间内"
+          },
           "default": {
             "description": "缺省值。缺省：bool=false、int=0、choice=choices[0]、text/hotkey=空串"
           },

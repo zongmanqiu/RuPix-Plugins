@@ -1,6 +1,6 @@
 # 第三方组件许可与说明（RuPix-Plugin）
 
-> **读取日期 2026-11-04。版本与许可证一律实读 `cargo metadata`（各插件自己的 `Cargo.lock`），
+> **读取日期 2026-11-07。版本与许可证一律实读 `cargo metadata`（各插件自己的 `Cargo.lock`），
 > 不许凭记忆写。** 机器判据 = `python tools/check_licenses.py`（白名单在
 > `tools/check_licenses.py` 的 `ALLOWED` 里，加一个许可证家族必须同时改那里和本表）。
 
@@ -31,19 +31,23 @@
 | `checkup` | 命令型（图片体检） | `serde_json` 1、`windows` 0.62（只开 `Win32_Foundation` / `Win32_System_Memory`） |
 | `levels` | 命令型（色阶分析） | `serde_json` 1、`windows` 0.62（同上两个 feature）；**零新增 crate**——PNG 编码、CRC32、Adler-32 与 base64 均在本插件内实现 |
 | `scan` | 命令型（条码识别） | `serde_json` 1、`windows` 0.62（同上两个 feature）、**`rxing` 0.6**（ZXing 的 Rust 移植，`default-features = false`） |
+| `channels` | 编辑型（通道调色） | `serde_json` 1、`windows` 0.62（`Win32_Foundation` / `Win32_Security` / `Win32_System_Memory`）；**零新增 crate**——只比前三枚多开一个 `windows` feature |
 
 ★ **`scan` 为什么关默认特性**：rxing 的 `default` 含 `image` + `image_formats`，会拖进一整套
 图片解码栈（png / jpeg / avif / tiff…）。插件**不解文件**——像素是宿主解好给的（AGENTS §一.2
 「不依赖解码器」），关掉之后依赖树仍然有 **87 枚**包（`chrono-tz` 是 rxing 解析 DataMatrix/Aztec
-日期段的非可选依赖，砍不掉），`scan.exe` 因此是三枚插件里最大的一枚。这笔账写在这里，
+日期段的非可选依赖，砍不掉），`scan.exe` 因此是四枚插件里最大的一枚。这笔账写在这里，
 是为了下次有人说"顺手加个解码库"时能看见代价。
 
-★ **不随包任何外部可执行文件**：今天三枚插件的产物只有各自的 `<id>.exe` +
+★ **不随包任何外部可执行文件**：今天四枚插件的产物只有各自的 `<id>.exe` +
 `manifest.json`（打包时附带 `README.md` / `LICENSE` 这类人读文件）。条码解码走的是**编进
 `scan.exe` 的 Rust crate**，不是随包一枚外部 CLI——所以本节不需要"外部工具"那一节。
 若将来真要随包，必须先在本文件立一节登记来源 / 版本 / 许可证 / 获取方式（AGENTS §三.7）。
 
 ## 三、许可证家族账（87 枚解析后包，按家族计数）
+
+> 2026-11-07 复核：`channels` 只多开了一个 `windows` feature，没有引入新 crate，
+> `python tools/check_licenses.py --list` 仍是 **87 枚**，下表计数与家族一个都没漂。
 
 | 家族 | 出现次数 | 判定 | 谁引入 |
 |---|---|---|---|

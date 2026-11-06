@@ -10,13 +10,20 @@
 //! ★ 版式（2026-11-04 用户两轮反馈定稿）：**一张图叠四条平滑曲线，只描线、
 //!   不给曲线下面积上色**——面积色才是 0.1.0 "叠在一起看不清"的真凶；纯细线
 //!   交叉处只有 1~2 像素，谁是谁一眼可辨。四条线共用同一纵轴（满格 = 全局
-//!   峰值箱）；横轴 5 条网格线（0/64/128/192/255），纵轴右侧标绝对点数。
+//!   峰值箱）；横轴 5 条网格线（0/64/128/192/255）。
+//! ★ 纵轴单位（2026-11-06）：右侧五条刻度标的是**这一档像素占全图可见像素的
+//!   百分比**（基线 0.00% + 峰值的 25/50/75/100%），分母恒为
+//!   `Histogram::counted`（与报告里 `pct()` 同一份），顶线 = 峰值箱占比。曲线仍
+//!   按峰值自适应铺满，所以顶线数值随图变；100% 是理论上限（所有可见像素落进
+//!   同一箱），不是固定满格。刻度字用 INK 亮色，不用 GRID。
+//! ★ 基线（2026-11-06 实机返工）：水平网格从 `0..=4` 画满五条，`k=0` 就是绘图区
+//!   **底边框线**，与上/左/右合成闭合框；旧版从 `k=1` 起画，底边一直没画过。
 
 use crate::hist::{Histogram, BINS, CH_B, CH_G, CH_L, CH_R};
 
 const W: usize = 640;
 const H: usize = 360;
-/// 绘图区右沿到 580，右侧 584..640 给纵轴刻度数值（自适应 K / M 缩写）。
+/// 绘图区右沿到 580，右侧 584..640 给纵轴刻度（占全图的百分比）。
 const X0: i32 = 40;
 const X1: i32 = 580;
 const Y0: i32 = 24;
@@ -125,24 +132,40 @@ fn glyph(ch: char) -> Option<[u8; 5]> {
         'G' => [0b111, 0b100, 0b101, 0b101, 0b111],
         'B' => [0b110, 0b101, 0b110, 0b101, 0b110],
         'L' => [0b100, 0b100, 0b100, 0b100, 0b111],
-        'K' => [0b101, 0b101, 0b110, 0b101, 0b101],
-        'M' => [0b101, 0b111, 0b111, 0b101, 0b101],
+        '%' => [0b101, 0b001, 0b010, 0b100, 0b101],
         '.' => [0b000, 0b000, 0b000, 0b000, 0b010],
         ' ' => [0, 0, 0, 0, 0],
         _ => return None,
     })
 }
 
-/// 纵轴刻度数值的自适应缩写：万级以上进 K / M，保证右侧 56px 的标签区放得下。
-/// 数字是**点数**（这一箱有多少像素），横轴才是 0..255 的亮度。
-fn axis_num(v: i64) -> String {
-    if v >= 1_000_000 {
-        format!("{:.1}M", v as f64 / 1e6)
-    } else if v >= 10_000 {
-        format!("{}K", (v as f64 / 1e3).round() as i64)
-    } else {
-        format!("{v}")
+/// 纵轴刻度：**这一档的像素占全图可见像素的百分比**。
+///
+/// 分母恒为 `counted`（alpha>0 的点），与文本报告里的 `pct()` 同一份；含透明的
+/// `total_pixels()` 会让带透明边的图占比虚低。两位小数是必须的：高光溢出那一档
+/// 可以有 0.02%，纯色图顶线是 100.00%，一位小数会把前者抹成 0.0%。
+fn axis_pct(points: i64, counted: u64) -> String {
+    if counted == 0 {
+        return "0.00%".to_string();
     }
+    format!("{:.2}%", points as f64 * 100.0 / counted as f64)
+}
+
+/// 五条水平网格线的标签，从下到上：基线 0.00% + 全局峰值的 25/50/75/100%。
+///
+/// 基线必须显式标零：纵轴是从 0 起算的占比，只印 1.28/2.56/3.84/5.11% 会让人看不出
+/// 底下那根线代表 0。单独留一个纯函数，让"分母是 `counted` 而不是含透明像素的总数"
+/// 能被单测直接钉住，不必去 OCR 3×5 点阵字。曲线按峰值归一化 ⇒ 顶线是本图峰值箱
+/// 占比，不是 100%。
+pub fn axis_labels(h: &Histogram) -> [String; 5] {
+    let peak = h.global_peak().max(1) as i64;
+    std::array::from_fn(|k| {
+        if k == 0 {
+            "0.00%".to_string()
+        } else {
+            axis_pct(peak * k as i64 / 4, h.counted)
+        }
+    })
 }
 
 /// Catmull-Rom（标准 0.5 系数）在**分数箱位** `t` 处的插值。四点越界时用最近端
@@ -163,8 +186,9 @@ fn smooth_at(bins: &[u32; BINS], t: f64) -> f64 {
 
 /// 画完一张 640×360 的直方图：四条通道的**平滑曲线叠在同一绘图区**（逐列
 /// Catmull-Rom 采样，纯描边、**无面积填充**），共用同一纵轴（满格 = 全局峰值）。
-/// 横轴 5 条竖网格线（0/64/128/192/255，数值写在绘图区下方），纵轴右侧标每条
-/// 横网格线的绝对点数（万级以上缩写成 K / M）。
+/// 横轴 5 条竖网格线（0/64/128/192/255，数值写在绘图区下方）；纵轴 5 条水平网格线
+/// 合成闭合框（`k=0` 是底边），右侧各标一个占全图可见像素的百分比：基线 0.00%，
+/// 顶线 = 峰值箱占比。
 pub fn draw_chart(h: &Histogram) -> Canvas {
     let mut c = Canvas::new();
     let plot_w = X1 - X0;
@@ -174,8 +198,9 @@ pub fn draw_chart(h: &Histogram) -> Canvas {
     let peak = h.global_peak().max(1) as i64;
     let peakf = peak as f64;
 
-    // 网格：4 条水平（25/50/75/100% 峰值）+ 5 条垂直（0/64/128/192/255）。
-    for k in 1..=4 {
+    // 网格：5 条水平（基线 0% + 25/50/75/100% 峰值）+ 5 条垂直（0/64/128/192/255）。
+    // k=0 那条就是绘图区底边；漏了它，框只有上/左/右三面，横轴看着像悬空。
+    for k in 0..=4 {
         let y = Y1 - plot_h * k / 4;
         for x in X0..=X1 {
             c.set(x, y, GRID);
@@ -223,11 +248,20 @@ pub fn draw_chart(h: &Histogram) -> Canvas {
         lx += 34;
     }
 
-    // 纵轴刻度数值（右侧标签区；顶线 = 满格 = 全局峰值）。
-    for k in 1..=4 {
+    // 纵轴刻度（右侧标签区）：五条水平网格线各标一个占全图的百分比，k=0 是基线
+    // 0.00%，k=4 顶线 = 峰值箱占比。用 INK 而不是 GRID：GRID 与背景的对比度约
+    // 1.7:1，刻度写了也等于没写。顶线标签抬到绘图区上方，免得压在曲线上。
+    for (k, label) in axis_labels(h).iter().enumerate() {
+        let k = k as i32;
         let y = Y1 - plot_h * k / 4;
-        let ly = if k == 4 { Y0 - 12 } else { y - 5 };
-        c.text(584, ly, &axis_num(peak * k as i64 / 4), GRID);
+        // 顶线抬到绘图区上方、基线坐在底边上方（其余四条仍跨线居中）。基线若也用
+        // y-5，0.00% 与下一行横轴的 "255" 只隔 3px、横向还叠 6px，会挤成一串。
+        let ly = match k {
+            4 => Y0 - 12,
+            0 => Y1 - 14,
+            _ => y - 5,
+        };
+        c.text(584, ly, label, INK);
     }
 
     // 横轴刻度：0/64/128/192/255，文字中心对准网格线。
@@ -462,10 +496,78 @@ mod tests {
     }
 
     #[test]
-    fn axis_ticks_are_printed_with_absolute_scale() {
+    fn axis_labels_use_visible_pixels_as_denominator() {
+        // 四个可见像素同色 + 一个全透明：counted=4 / total=5。
+        // 峰值箱 4 点 ⇒ 顶线必须是 100.00%（4/4），不是 80.00%（4/5）。
+        let h = hist_of(
+            &[
+                [10, 20, 30, 255],
+                [10, 20, 30, 255],
+                [10, 20, 30, 255],
+                [10, 20, 30, 255],
+                [200, 200, 200, 0],
+            ],
+            5,
+            1,
+        );
+        assert_eq!(h.counted, 4);
+        assert_eq!(h.total_pixels(), 5);
+        assert_eq!(h.global_peak(), 4);
+        assert_eq!(
+            axis_labels(&h),
+            [
+                "0.00%",
+                "25.00%",
+                "50.00%",
+                "75.00%",
+                "100.00%"
+            ]
+        );
+    }
+
+    #[test]
+    fn baseline_closes_the_frame_and_is_labelled_zero_percent() {
         let c = draw_chart(&hist_of(&[[255, 0, 0, 255]; 4], 2, 2));
-        // 纵轴：右侧标签区应有刻度数值（顶线 = 全局峰值 "4"，写在绘图区上方）。
-        assert_ne!(c.get(585, Y0 - 12)[0], BG[0], "顶线数值该印在标签区");
+        // 底边框线：x=330 既不是五条竖网格线（40/175/310/445/580），也没有任何
+        // 曲线数据（纯红夹具的数据只在 0 / 76 / 255 箱附近），所以这一格只可能是
+        // 基线本身。旧版水平网格从 k=1 起画 ⇒ 这里是背景色，框缺底边。
+        assert_eq!(c.get(330, Y1), GRID, "绘图区底边该有横线，与上/左/右合成闭合框");
+        // 基线标签：右侧标签区必须精确印着 0.00%，而不是留空或被别的字占掉。
+        let mut expect = Canvas::new();
+        expect.text(584, Y1 - 14, "0.00%", INK);
+        for y in (Y1 - 14)..(Y1 - 4) {
+            for x in 584..640 {
+                assert_eq!(
+                    c.get(x, y),
+                    expect.get(x, y),
+                    "基线标签区 ({x},{y}) 与 0.00% 不符"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn axis_pct_keeps_small_values_and_the_full_range() {
+        assert_eq!(axis_pct(4210, 307200), "1.37%");
+        assert_eq!(axis_pct(301, 307200), "0.10%");
+        assert_eq!(axis_pct(4, 4), "100.00%");
+        assert_eq!(axis_pct(0, 0), "0.00%", "空图不许除零");
+    }
+
+    #[test]
+    fn axis_ticks_are_printed_as_percentages_in_ink() {
+        let c = draw_chart(&hist_of(&[[255, 0, 0, 255]; 4], 2, 2));
+        // 顶线标签区（绘图区上方那一行）必须有亮色 INK 像素；旧版用 GRID 深灰，
+        // 与背景只差约 1.7:1 ⇒ 用户看不到纵轴有任何刻度。
+        let mut ink = 0;
+        for y in (Y0 - 12)..(Y0 + 10) {
+            for x in 584..640 {
+                if c.get(x, y) == INK {
+                    ink += 1;
+                }
+            }
+        }
+        assert!(ink > 0, "顶线百分比该用亮色刻度字印在标签区");
         // 横轴：5 个刻度，"255" 应落在最右网格线附近。
         let x255 = c.get(X1 - 8, Y1 + 12);
         assert!(x255[0] > 100, "255 刻度该印在绘图区右端下方：{x255:?}");
@@ -473,18 +575,9 @@ mod tests {
 
     #[test]
     fn glyphs_cover_every_character_the_chart_prints() {
-        for ch in "0123456789RGBLKM. ".chars() {
+        for ch in "0123456789RGBL.% ".chars() {
             assert!(glyph(ch).is_some(), "缺字形 {ch:?}");
         }
         assert!(glyph('Z').is_none(), "没收的字符要如实返回 None");
-    }
-
-    #[test]
-    fn axis_num_abscs_above_ten_thousand() {
-        assert_eq!(axis_num(0), "0");
-        assert_eq!(axis_num(4210), "4210");
-        assert_eq!(axis_num(9999), "9999");
-        assert_eq!(axis_num(10_000), "10K");
-        assert_eq!(axis_num(4_210_000), "4.2M");
     }
 }
