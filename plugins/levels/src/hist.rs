@@ -1,14 +1,75 @@
 //! 像素分布统计：共享内存里的 RGBA8 整图 → R / G / B / 亮度四组 256 箱。
 //!
-//! 纪律三条（与 `checkup` 同族，但这里是**全量**统计）：
-//! 1. **不抽稀**。宿主下发上限 8 MP，256 个箱的整数累加在这个量级是毫秒级，
-//!    没必要用采样换速度；报告里如实写"全量，未抽稀"。
+//! 纪律三条（与 `checkup` 同族）：
+//! 1. **如实交代来路**。宿主下发的像素不一定是原图全量：超过 8 MP 时它会**等距抽样**
+//!    （每 N 像素取 1 点，只挑不混），首帧也可能只是视口档。报告里必须写清"这份像素
+//!    对应原图多少"——0.1.6 之前一律写"全量，未抽稀"，在 561×561 的预览档上就是假话。
 //! 2. **全透明像素不算数**。屏幕上那些位置画的是棋盘格，不是图像颜色，
 //!    把它们算进亮度会把任何带透明边的图拉出一大坨假的"死黑"。
 //! 3. **公式写死**：亮度用 Rec.601 的整数近似 `(77R + 150G + 29B) >> 8`
 //!    （与 `checkup` 的清晰度段同一份灰度定义，两张报告可以横着比）。
 
 use crate::shm::Raster;
+
+/// 这份像素的来路：原图多大、抽没抽样。
+///
+/// 宿主在请求里给 `source = {width, height}` 与 `sample_step`；两者都不给（老宿主、
+/// 或本来就是全量）= [`Input::FULL`]，报文与 0.1.6 逐字相同。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Input {
+    pub source: Option<(u32, u32)>,
+    pub step: u32,
+}
+
+impl Input {
+    /// 全量、未抽样（也是"宿主没说"时的默认：宁可说全量，也不替宿主猜）。
+    pub const FULL: Input = Input {
+        source: None,
+        step: 1,
+    };
+
+    /// 报告里那半句"这份统计覆盖原图多少"。
+    ///
+    /// 三态，缺一态就会撒谎：
+    /// - 全量：`source` 与图尺寸一致、且没抽样；
+    /// - **抽样**：`step > 1`，说清原图多大、每几点取一、总共多少样本；
+    /// - **预览档**：`step == 1` 但图比原图小（首帧视口档），说清"这是哪一档、怎么拿到更高"。
+    pub fn coverage_note(&self, w: usize, h: usize) -> String {
+        let Some((sw, sh)) = self.source else {
+            // 宿主给了抽样却没给原图尺寸（协议里两个字段是分开的可选项）：
+            // 仍要把"这是抽样"说出来，不能退回"全量"。
+            return if self.step > 1 {
+                format!(
+                    "**抽样统计**：每 {} 像素取 1 点 ⇒ {w}×{h} 共 {} 个样本（宿主未给原图尺寸）",
+                    self.step,
+                    w as u64 * h as u64
+                )
+            } else {
+                "全量，未抽稀".to_string()
+            };
+        };
+        let src_total = sw as u64 * sh as u64;
+        let got = w as u64 * h as u64;
+        if src_total == 0 {
+            return "全量，未抽稀".to_string();
+        }
+        let cover = got as f64 * 100.0 / src_total as f64;
+        if self.step > 1 {
+            format!(
+                "**抽样统计**：原图 {sw}×{sh}，每 {} 像素取 1 点 ⇒ {w}×{h} 共 {got} 个样本，\
+                 覆盖原图 {cover:.2}%；每个样本都是原图上真实存在的原始像素，未做平均",
+                self.step
+            )
+        } else if got < src_total {
+            format!(
+                "**预览档**：原图 {sw}×{sh}，本次只拿到 {w}×{h}（覆盖 {cover:.2}%）；\
+                 放大到 100% 再分析可获得更高档位"
+            )
+        } else {
+            "全量，未抽稀".to_string()
+        }
+    }
+}
 
 pub const BINS: usize = 256;
 pub const CH_R: usize = 0;
@@ -124,7 +185,17 @@ impl Histogram {
 
     /// 结果窗里那段可复制的 Markdown。`with_image` 只是"本次要不要出图"的说明，
     /// 统计图本身与它无关——设不设置都不影响任何数字。
+    ///
+    /// 便捷壳：不传来路 = 全量（0.1.6 及更早的报文，逐字不变）。
+    ///
+    /// 只给单测与内部默认用——生产路径一律 `report_with`（要带 `input_of` 读到的来路）。
+    #[cfg(test)]
     pub fn report(&self, with_image: bool) -> String {
+        self.report_with(with_image, Input::FULL)
+    }
+
+    /// 带**来路**的报告。`input` 说清这份像素对应原图多少，报告才可能不撒谎。
+    pub fn report_with(&self, with_image: bool, input: Input) -> String {
         let pct = |n: u64| -> String {
             if self.counted == 0 {
                 "0.00%".to_string()
@@ -154,9 +225,10 @@ impl Histogram {
             "本次按设置只出文本，未生成图形（设置里打开「同时生成分布曲线图」即可看图）"
         };
         let peak = self.peak_bin(CH_L);
+        let coverage = input.coverage_note(self.width, self.height);
         format!(
             "## 色阶分析\n\n\
-             - **统计范围**：{w}×{h} 共 {total} 像素；**实际统计 {counted} 点（全量，未抽稀）**，\
+             - **统计范围**：{w}×{h} 共 {total} 像素，**实际统计 {counted} 点**（{coverage}），\
              跳过全透明 {transparent} 点。\n\
              - **亮度**（Rec.601 整数近似 `(77R+150G+29B)>>8`）：均值 {mean:.1} / \
              中位数箱 {median} / 峰值箱 {peak}（{peak_n} 点）。\n\
@@ -174,6 +246,7 @@ impl Histogram {
             total = self.total_pixels(),
             counted = self.counted,
             transparent = self.transparent,
+            coverage = coverage,
             mean = self.mean(CH_L),
             median = self.median_bin(CH_L),
             peak = peak,
@@ -289,5 +362,63 @@ mod tests {
         // 关掉图形同样不许改动任何一个纵轴数字。
         let off = Histogram::accumulate(&r).report(false);
         assert!(off.contains("4 点，占实际统计 4 点的 100.00%"), "{off}");
+    }
+
+    /// ★ 三态来路必须各说各话。0.1.6 之前一律印"全量，未抽稀"——
+    /// 在 561×561 的预览档上那是假话，在抽样图上是更严重的假话。
+    #[test]
+    fn coverage_note_tells_full_sample_and_preview_apart() {
+        let r = raster(&[[10, 20, 30, 255]; 4], 2, 2);
+        let h = Histogram::accumulate(&r);
+
+        // ① 全量：宿主给的原图尺寸与这份像素一致。
+        let full = h.report_with(true, Input { source: Some((2, 2)), step: 1 });
+        assert!(full.contains("全量，未抽稀"), "{full}");
+
+        // ② 抽样：原图 4080²、这份 1020²、每 4 像素取 1 点 ⇒ 覆盖 6.25%。
+        //    覆盖率那半句直接测纯函数（不必为它造一张真的 1020² 图）。
+        let note = Input {
+            source: Some((4080, 4080)),
+            step: 4,
+        }
+        .coverage_note(1020, 1020);
+        assert!(note.contains("抽样统计"), "{note}");
+        assert!(note.contains("每 4 像素取 1 点"), "{note}");
+        assert!(note.contains("6.25%"), "1020²/4080² 应报 6.25%：{note}");
+        let sampled = h.report_with(
+            true,
+            Input {
+                source: Some((4080, 4080)),
+                step: 4,
+            },
+        );
+        assert!(sampled.contains("抽样统计"), "{sampled}");
+        assert!(!sampled.contains("全量"), "抽样图不许再声称全量：{sampled}");
+
+        // ③ 预览档：没抽样，但只有原图的一小块 —— 这正是"第一次能、第二次不能"那次的样子。
+        let preview = h.report_with(
+            true,
+            Input {
+                source: Some((4080, 4080)),
+                step: 1,
+            },
+        );
+        assert!(preview.contains("预览档"), "{preview}");
+        assert!(preview.contains("4080×4080"), "{preview}");
+        assert!(
+            preview.contains("放大到 100%"),
+            "要说清怎么拿到更高档：{preview}"
+        );
+
+        // ④ 宿主只给了 step、没给 source：仍须承认是抽样，不能退回"全量"。
+        let bare = h.report_with(
+            true,
+            Input {
+                source: None,
+                step: 8,
+            },
+        );
+        assert!(bare.contains("抽样统计"), "{bare}");
+        assert!(!bare.contains("全量"), "{bare}");
     }
 }

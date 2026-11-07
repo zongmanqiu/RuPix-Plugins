@@ -19,6 +19,8 @@ ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
 VER_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*$")
 CAPS = {
     "image.read",
+    # 接受宿主抽样下发（>8 MP 时按整数步长等距取点）。声明制：没声明就维持"只发路径"。
+    "image.sampled",
     "image.write",
     "selection.read",
     "clipboard.write",
@@ -176,6 +178,17 @@ def check_manifest(path: Path, dir_name: str, seen: set[str], errors: list[str])
                         fail(errors, path, f"preview.{field}: {k!r} is not in settings")
                     elif it.get("type") != "int" or "min" not in it or "max" not in it:
                         fail(errors, path, f"preview.{field}: {k!r} must be an int with min/max")
+            # Optional seventh slider: the gamma tone curve key (additive, 0.1.2+).
+            gkey = prev.get("gamma")
+            if gkey is not None:
+                if not isinstance(gkey, str):
+                    fail(errors, path, "preview.gamma must be one key name")
+                else:
+                    it = keys.get(gkey)
+                    if it is None:
+                        fail(errors, path, f"preview.gamma: {gkey!r} is not in settings")
+                    elif it.get("type") != "int" or "min" not in it or "max" not in it:
+                        fail(errors, path, f"preview.gamma: {gkey!r} must be an int with min/max")
 
     # `presets` = declarative filter table (additive). The host writes the six
     # slider values when a preset is chosen, so numbers must land inside the
@@ -235,6 +248,21 @@ def check_manifest(path: Path, dir_name: str, seen: set[str], errors: list[str])
                                 errors,
                                 path,
                                 f"presets.{name}.{field}[{i}]={v} outside {lo}..{hi}",
+                            )
+                # Optional gamma value: absent means the neutral 100 (identity).
+                gval = body.get("gamma")
+                if gval is not None:
+                    gkey = prev.get("gamma") if isinstance(prev, dict) else None
+                    it = key_map.get(gkey) if isinstance(gkey, str) else None
+                    if not isinstance(gval, int) or isinstance(gval, bool):
+                        fail(errors, path, f"presets.{name}.gamma must be an integer")
+                    elif it is not None:
+                        lo, hi = it.get("min"), it.get("max")
+                        if isinstance(lo, int) and isinstance(hi, int) and not (lo <= gval <= hi):
+                            fail(
+                                errors,
+                                path,
+                                f"presets.{name}.gamma={gval} outside {lo}..{hi}",
                             )
 
     for key in ("description", "author"):

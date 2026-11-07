@@ -4,8 +4,10 @@
 //! creates a NEW mapping and replies with its ImageRef. Then it blocks reading the
 //! pipe until the host closes it (protocol v1 section 7 timing rule).
 //!
-//! Transform: `out = clamp(in * gain/100 + bias)` per RGB channel; alpha and stride
-//! padding are untouched.
+//! Transform: `out = gamma(clamp(in * gain/100 + bias))` per RGB channel; alpha and
+//! stride padding are untouched. `gamma` is a 256-entry tone curve applied AFTER the
+//! linear part; `gamma = 100` (i.e. exponent 1.0) is the exact identity, so every
+//! pre-0.1.2 settings file keeps producing byte-identical pixels.
 //!
 //! The FILTER PRESETS now live in manifest.json (`presets`): the host writes their six
 //! numbers into the sliders, so every preset reaches this binary as plain `settings`
@@ -29,6 +31,11 @@ const GAIN_MIN: i32 = -400;
 const GAIN_MAX: i32 = 400;
 const BIAS_MIN: i32 = -255;
 const BIAS_MAX: i32 = 255;
+/// Gamma is expressed as an integer percent of 1.0: 100 => 1.0 (identity),
+/// 200 => exponent 0.5 (lifts shadows), 50 => exponent 2.0 (crushes shadows).
+const GAMMA_MIN: i32 = 30;
+const GAMMA_MAX: i32 = 300;
+const GAMMA_NEUTRAL: i32 = 100;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Channel {
@@ -61,6 +68,8 @@ struct Params {
     r: Channel,
     g: Channel,
     b: Channel,
+    /// Tone-curve exponent as an integer percent of 1.0; 100 = identity.
+    gamma: i32,
     preset: Preset,
 }
 
@@ -69,6 +78,7 @@ impl Params {
         r: Channel::NEUTRAL,
         g: Channel::NEUTRAL,
         b: Channel::NEUTRAL,
+        gamma: GAMMA_NEUTRAL,
         preset: Preset::Custom,
     };
 }
@@ -103,6 +113,7 @@ fn parse_params(settings: Option<&Value>) -> Params {
     p.r.bias = int_setting(settings, "r_bias", 0, BIAS_MIN, BIAS_MAX);
     p.g.bias = int_setting(settings, "g_bias", 0, BIAS_MIN, BIAS_MAX);
     p.b.bias = int_setting(settings, "b_bias", 0, BIAS_MIN, BIAS_MAX);
+    p.gamma = int_setting(settings, "gamma", GAMMA_NEUTRAL, GAMMA_MIN, GAMMA_MAX);
     match preset {
         Preset::Invert => {
             p.r = Channel::INVERT;
@@ -132,22 +143,47 @@ fn preset_numbers(p: Params) -> Option<Value> {
         "r_bias": p.r.bias.to_string(),
         "g_bias": p.g.bias.to_string(),
         "b_bias": p.b.bias.to_string(),
+        "gamma": p.gamma.to_string(),
     }))
+}
+
+/// The 256-entry tone curve, applied AFTER the linear gain/bias part.
+/// `gamma_pct` is an integer percent of 1.0: `out = 255*(in/255)^(100/gamma_pct)`.
+/// Host-side `core::pixels::gamma_table` is the byte-exact twin of this function;
+/// the `preview-parity` arm in `main/examples/plugin_smoke.rs` pins the two together.
+/// Neutral is a literal identity table (no floating point at all) so every
+/// pre-0.1.2 settings file still produces byte-identical pixels.
+fn gamma_table(gamma_pct: i32) -> [u8; 256] {
+    let mut table = [0u8; 256];
+    if gamma_pct == GAMMA_NEUTRAL {
+        for (v, slot) in table.iter_mut().enumerate() {
+            *slot = v as u8;
+        }
+        return table;
+    }
+    let g = gamma_pct.clamp(GAMMA_MIN, GAMMA_MAX) as f64 / 100.0;
+    for (v, slot) in table.iter_mut().enumerate() {
+        let t = v as f64 / 255.0;
+        let y = 255.0 * t.powf(1.0 / g);
+        *slot = (y + 0.5).floor().clamp(0.0, 255.0) as u8;
+    }
+    table
 }
 
 /// Only the `width*4` real pixels of each row change: stride padding and alpha
 /// are copied byte-for-byte from the host mapping.
 fn transform(src: &[u8], width: u32, height: u32, stride: u32, p: Params) -> Vec<u8> {
     let mut out = src.to_vec();
+    let curve = gamma_table(p.gamma);
     let row = stride as usize;
     let usable = width as usize * 4;
     for y in 0..height as usize {
         let base = y * row;
         for x in (0..usable).step_by(4) {
             let i = base + x;
-            out[i] = p.r.apply(src[i]);
-            out[i + 1] = p.g.apply(src[i + 1]);
-            out[i + 2] = p.b.apply(src[i + 2]);
+            out[i] = curve[p.r.apply(src[i]) as usize];
+            out[i + 1] = curve[p.g.apply(src[i + 1]) as usize];
+            out[i + 2] = curve[p.b.apply(src[i + 2]) as usize];
         }
     }
     out
@@ -305,6 +341,7 @@ mod tests {
                 gain: b_gain,
                 bias: 0,
             },
+            gamma: GAMMA_NEUTRAL,
             preset: Preset::Custom,
         }
     }
@@ -317,6 +354,7 @@ mod tests {
             r: Channel::INVERT,
             g: Channel::INVERT,
             b: Channel::INVERT,
+            gamma: GAMMA_NEUTRAL,
             preset: Preset::Invert,
         };
         assert_eq!(transform(&src, 1, 1, 4, p), vec![255, 128, 0, 77]);
@@ -348,6 +386,7 @@ mod tests {
             r: Channel::INVERT,
             g: Channel::INVERT,
             b: Channel::INVERT,
+            gamma: GAMMA_NEUTRAL,
             preset: Preset::Invert,
         });
         assert_eq!(out[0..4], [245, 235, 225, 255]);
@@ -406,5 +445,67 @@ mod tests {
     #[test]
     fn missing_image_is_an_error() {
         assert!(build_response(&json!({"action":"run"})).is_err());
+    }
+
+    #[test]
+    fn gamma_neutral_is_exactly_identity() {
+        let t = gamma_table(GAMMA_NEUTRAL);
+        for (v, got) in t.iter().enumerate() {
+            assert_eq!(*got, v as u8, "gamma 100 must be byte-identity at {v}");
+        }
+        let src: Vec<u8> = (0..=255)
+            .flat_map(|v| [v as u8, v as u8, v as u8, 255])
+            .collect();
+        assert_eq!(transform(&src, 256, 1, 256 * 4, Params::DEFAULT), src);
+    }
+
+    #[test]
+    fn gamma_curve_matches_hardcoded_bytes() {
+        let lift = gamma_table(200); // exponent 0.5
+        let crush = gamma_table(50); // exponent 2.0
+                                     // Expected bytes come from an independent calculation,
+                                     // not from this binary's own formula.
+        for (v, want) in [(0, 0), (1, 16), (32, 90), (64, 128), (128, 181), (255, 255)] {
+            assert_eq!(lift[v], want, "lift at {v}");
+        }
+        for (v, want) in [(0, 0), (32, 4), (64, 16), (128, 64), (255, 255)] {
+            assert_eq!(crush[v], want, "crush at {v}");
+        }
+        assert!(lift[64] > 64 && crush[64] < 64, "shadows move, ends stay put");
+        assert_eq!(gamma_table(180)[64], 118);
+    }
+
+    #[test]
+    fn gamma_is_applied_after_gain_bias() {
+        // 200 -> invert to 55 -> lift(55) = 118. Running gamma first would give
+        // 255 - lift(200) = 29 instead. Order is part of the preview parity contract.
+        let src = [200u8, 200, 200, 255];
+        let p = Params {
+            r: Channel::INVERT,
+            g: Channel::INVERT,
+            b: Channel::INVERT,
+            gamma: 200,
+            preset: Preset::Custom,
+        };
+        assert_eq!(transform(&src, 1, 1, 4, p), vec![118, 118, 118, 255]);
+    }
+
+    #[test]
+    fn settings_parse_and_clamp_gamma() {
+        assert_eq!(parse_params(None).gamma, GAMMA_NEUTRAL);
+        assert_eq!(
+            parse_params(Some(&json!({"preset":"custom","gamma":"180"}))).gamma,
+            180
+        );
+        assert_eq!(
+            parse_params(Some(&json!({"gamma":"99999"}))).gamma,
+            GAMMA_MAX
+        );
+        assert_eq!(
+            parse_params(Some(&json!({"gamma":"nope"}))).gamma,
+            GAMMA_NEUTRAL
+        );
+        let inv = parse_params(Some(&json!({"preset":"invert"})));
+        assert_eq!(preset_numbers(inv).unwrap()["gamma"], "100");
     }
 }

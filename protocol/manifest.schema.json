@@ -43,6 +43,7 @@
       "items": {
         "enum": [
           "image.read",
+          "image.sampled",
           "image.write",
           "selection.read",
           "clipboard.write",

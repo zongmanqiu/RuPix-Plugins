@@ -65,9 +65,10 @@ fn build_response(request: &Value, want_image: bool) -> Value {
         .and_then(Value::as_str)
     else {
         return json!({"protocol":1,"ok":false,"error":
-            "请求里没有整图像素（image 字段缺席）。宿主只在两种情况下下发：\
-             本插件声明了 image.read，且当前整图不超过宿主的编辑档上限（8 MP）。\
-             超上限的图请换小一档的画幅再看。"});
+            "请求里没有整图像素（image 字段缺席）。只可能是这三种情况：\
+             ① 插件没声明 image.read；② 当前是切片态（区域渲染），宿主手里没有整图；\
+             ③ 这张图超过 8 MP，而宿主不认识本插件 0.1.7 起声明的 image.sampled\
+             （老宿主会退回「只发路径」）。前两种无解，第三种升级看图程序即可。"});
     };
     let img = match read_mapping(name) {
         Ok(img) => img,
@@ -78,12 +79,34 @@ fn build_response(request: &Value, want_image: bool) -> Value {
         return json!({"protocol":1,"ok":false,"error":
             "整图没有可见像素（全部 alpha=0），没有明暗分布可统计。"});
     }
-    let mut resp = json!({"protocol":1,"ok":true,"text":h.report(want_image)});
+    let mut resp = json!({"protocol":1,"ok":true,"text":h.report_with(want_image, input_of(request))});
     if want_image {
         let (ext, b64) = chart_payload(&h);
         resp["open_image"] = json!({"ext": ext, "base64": b64});
     }
     resp
+}
+
+/// 这份像素的来路：宿主在请求里给 `source` 与 `sample_step`。
+///
+/// 两个字段都是**可选**的（协议加法式）：老宿主一个都不给 ⇒ [`hist::Input::FULL`]，
+/// 报文与 0.1.6 逐字相同。超 8 MP 的图宿主会抽样下发，那时两个字段都在。
+fn input_of(request: &Value) -> hist::Input {
+    let source = request.get("source").and_then(|s| {
+        let w = s.get("width")?.as_u64()?;
+        let h = s.get("height")?.as_u64()?;
+        (w > 0 && h > 0).then_some((w as u32, h as u32))
+    });
+    let step = request
+        .get("sample_step")
+        .and_then(Value::as_u64)
+        .unwrap_or(1)
+        .max(1) as u32;
+    if source.is_none() && step <= 1 {
+        // 老宿主 / 未抽样：走与 0.1.6 逐字相同的那条报文。
+        return hist::Input::FULL;
+    }
+    hist::Input { source, step }
 }
 
 /// 画图那一腿单独留口：单测直接验它回的是 PNG 而不是别的序列化产物。

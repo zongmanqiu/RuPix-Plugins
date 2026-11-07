@@ -2,24 +2,24 @@
   {
     "id": "channels",
     "name": "通道调色",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "protocol": 1,
     "min_host": "0.1.0",
     "kind": "editor",
-    "description": "右键「插件 → 通道调色」或按快捷键打开调色窗：六条滑块控制 R/G/B 的增益与偏置，拖动时看图窗里的图立刻跟着变；关窗即生效，不需要「完成」。预设是一组组数值（滤镜），「反相」就是三通道增益 -100%、偏置 255；拖任一条滑块自动回落「自定义」。窗内「另存为…」存 PNG、「还原」清掉调色。只改显示、不写文件。",
+    "description": "右键「插件 → 通道调色」或按快捷键打开调色窗：六条滑块控制 R/G/B 的增益与偏置，第七条「暗部补偿 (Gamma)」用曲线只抬暗部、亮部基本不动；拖动时看图窗里的图立刻跟着变，关窗即生效，不需要「完成」。预设是一组组数值（滤镜），「反相」就是三通道增益 -100%、偏置 255，「暗部补偿」就是 Gamma 180；拖任一条滑块自动回落「自定义」。窗内「另存为…」存 PNG、「还原」清掉调色。只改显示、不写文件。",
     "capabilities": [
       "image.read",
       "image.write",
       "settings.read",
       "settings.write"
     ],
-    "released": "2026-11-06",
+    "released": "2026-11-07",
     "author": "RuPix",
     "license": "MIT",
-    "file": "channels_0.1.1.zip",
-    "size": 108679,
-    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/channels_0.1.1/channels_0.1.1.zip",
-    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/channels_0.1.1/channels_0.1.1.zip"
+    "file": "channels_0.1.2.zip",
+    "size": 109687,
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/channels_0.1.2/channels_0.1.2.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/channels_0.1.2/channels_0.1.2.zip"
   },
   {
     "id": "checkup",
@@ -45,24 +45,25 @@
   {
     "id": "levels",
     "name": "色阶分析",
-    "version": "0.1.6",
+    "version": "0.1.7",
     "protocol": 1,
     "min_host": "0.1.0",
     "kind": "command",
-    "description": "把当前图片的明暗家底摊开：全量统计 R/G/B/亮度四组 256 箱，报出均值、中位数、峰值箱、暗部与高光溢出比例、三通道均值与偏色提示；同时自己画一张 640x360 的 PNG（四条平滑曲线叠加，只描线不上面积色，横轴 5 档刻度、纵轴标占全图的百分比，按峰值自适应），由宿主开新看图窗口显示。宿主零改动，插件零新增依赖",
+    "description": "把当前图片的明暗家底摊开：统计 R/G/B/亮度四组 256 箱，报出均值、中位数、峰值箱、暗部与高光溢出比例、三通道均值与偏色提示；同时自己画一张 640x360 的 PNG（四条平滑曲线叠加，只描线不上面积色，横轴 5 档刻度、纵轴标占全图的百分比，按峰值自适应），由宿主开新看图窗口显示。超过 8 MP 的大图由宿主每 N 像素取 1 点抽样下发（只挑不混，直方图不因抽样失真），报告里如实写明覆盖率；小图仍是全量。宿主零改动，插件零新增依赖",
     "capabilities": [
       "image.read",
+      "image.sampled",
       "settings.read",
       "settings.write",
       "open.file"
     ],
-    "released": "2026-11-06",
+    "released": "2026-11-07",
     "author": "RuPix",
     "license": "MIT",
-    "file": "levels_0.1.6.zip",
-    "size": 125708,
-    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/levels_0.1.6/levels_0.1.6.zip",
-    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/levels_0.1.6/levels_0.1.6.zip"
+    "file": "levels_0.1.7.zip",
+    "size": 127350,
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/levels_0.1.7/levels_0.1.7.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/levels_0.1.7/levels_0.1.7.zip"
   },
   {
     "id": "scan",
