@@ -50,11 +50,12 @@
 
 ## 4. 能力（capabilities）：声明即约定，只有一部分真有通道
 
-宿主真正开通道的共**七项**（2026-10-31 起）：
+宿主真正开通道的共**八项**（2026-10-31 起；2026-11-07 加 `image.sampled`）：
 
 | 能力 | 宿主给的东西 |
 |---|---|
 | `image.read` | 当前图片的路径 + ≤8 MP 的共享内存像素（屏上朝向那一份） |
+| `image.sampled` | 整图超 8 MP 时改发**等距抽样**像素（整数步长取点、目标 ≈100 万点，请求带 `source` + `sample_step`；只挑不混） |
 | `image.write` | 编辑回写的接收方（同尺寸共享内存 → 宿主编辑态 → 另存 / 还原） |
 | `clipboard.write` | 结果自动写系统剪贴板 |
 | `settings.read` / `settings.write` | 设置区 `plugins/<id>/settings.json` 的读与合并写 |
@@ -102,7 +103,10 @@
 ## 7. 发布物
 
 每个插件一个 ZIP：`<id>_<ver>.zip`，内含 `manifest.json` + 入口 exe + `README.md` /
-`LICENSE` 等人读文件。清单 `plugins.json` 由 `tools/make_catalog.py` 生成，
+`LICENSE` 等人读文件，也可以带插件自带的子目录（如 `ocr` 的 `engine/`：外部识别引擎与模型）。
+★ 子目录里若有**不是本仓编译产物**的可执行文件，发布前必须先在
+[`../THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md) 立节登记来源 / 版本 / 许可证 / 获取方式
+（AGENTS §三.7）；那一节不存在 ⇒ 不随包。清单 `plugins.json` 由 `tools/make_catalog.py` 生成，
 下载地址指向发布仓的 release 资产（tag = `<id>_<version>`，资产 = 同名 zip）。
 
 **安装落点**：普通用户在宿主「设置 → 插件 → 可下载」点「下载」即可；手工安装时把 ZIP

@@ -1,7 +1,12 @@
 # RuPix 插件仓库
 
 > RuPix 看图器的**独立进程插件**源码与发布清单。
-> [**Gitee**](https://gitee.com/qiuzongman/RuPix-Plugins) | [**GitHub**](https://github.com/zongmanqiu/RuPix-Plugins)
+>
+> 宿主仓库: [Gitee](https://gitee.com/qiuzongman/RuPix) | [GitHub](https://github.com/zongmanqiu/RuPix)
+>
+> 解码器仓库: [Gitee](https://gitee.com/qiuzongman/RuPix-Decoders) | [GitHub](https://github.com/zongmanqiu/RuPix-Decoders)
+>
+> 插件仓库（本仓）: [Gitee](https://gitee.com/qiuzongman/RuPix-Plugins) | [GitHub](https://github.com/zongmanqiu/RuPix-Plugins)
 >
 > 普通用户不用碰这个仓库：宿主「设置 → 插件 → 可下载」点「下载」即可。
 
@@ -13,6 +18,7 @@
 | `scan`（条码识别） | 0.1.0 | 命令型 | 0.76 MB | 2026-10-31 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/scan_0.1.0/scan_0.1.0.zip) |
 | `levels`（色阶分析） | 0.1.7 | 命令型 | 0.12 MB | 2026-11-07 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/levels_0.1.7/levels_0.1.7.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/levels_0.1.7/levels_0.1.7.zip) |
 | `channels`（通道调色） | 0.1.2 | 编辑型 | 0.10 MB | 2026-11-07 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/channels_0.1.2/channels_0.1.2.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/channels_0.1.2/channels_0.1.2.zip) |
+| `ocr`（OCR 文字识别） | 0.1.0 | 命令型 | 20.09 MB | 2026-11-11 | [下载](https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/ocr_0.1.0/ocr_0.1.0.zip) | [下载](https://github.com/zongmanqiu/RuPix-Plugins/releases/download/ocr_0.1.0/ocr_0.1.0.zip) |
 
 表中数字与地址以 [`plugins.json`](plugins.json) 为真源（大小按 1 MB = 1024² B 换算），
 由 `python tools/check_docs.py` 对账。发布与上架步骤见 [`docs/releasing.md`](docs/releasing.md)。

@@ -104,6 +104,9 @@
   ../.build/docs/<id>_<ver>.zip
   ├─ manifest.json
   ├─ <entry>.exe
+  ├─ LICENSE-NOTICE.md            # make_catalog.py 生成（许可 + 源码位置），必带
+  ├─ README.md / LICENSE          # 插件目录里有才带
+  ├─ THIRD-PARTY-NOTICES.md       # 有第三方 crate 依赖时由 make_catalog.py 生成
   └─ （插件自带依赖，扁平放在同目录或子目录）
   ```
 - 同一 `id` 只保留一份；旧版本在构建末尾统一清理，不在循环里删。

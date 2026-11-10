@@ -18,7 +18,7 @@ build.ps1
  ├─ python tools/check_docs.py          # 文档五查：链接可达 + 清单登记 + 不写本机绝对路径
  │                                       #            + README 门面表对账 + 插件三份人读文件/HISTORY 格式
  ├─ 逐个 plugins/<id>/build.ps1         # cargo test --release → cargo build --release
- │   └─ 产物 → ../.temp/plugin-dist/<id>/{<entry>.exe, manifest.json}
+ │   └─ 产物 → ../.temp/plugin-dist/<id>/{<entry>.exe, manifest.json, 可选随包子目录}
  └─ python tools/make_catalog.py        # 用 7-Zip 打包 ../.build/docs/<id>_<ver>.zip + plugins.json
                                         #（ZIP 内另附 README / LICENSE / 生成的 LICENSE-NOTICE.md）
 ```
@@ -30,6 +30,7 @@ build.ps1
 | 源码 | `plugins/<id>/` | 每枚插件一个独立 cargo 包（各自 `Cargo.lock`，无 workspace） |
 | 编译中间物 | `../.temp/plugin-target/<id>/` | **不落源码目录**（各插件 `build.ps1` 用 `--target-dir` 钉死） |
 | 发布暂存 | `../.temp/plugin-dist/<id>/` | 根脚本从这里取货打包 |
+| 随包外部资产 | `../.temp/plugin-dist/<id>/engine/` | 目前只有 `ocr`：由 `plugins/ocr/fetch_assets.py` 按固定 SHA256 从工作区 `.temp/` 校验后拷入，**不进源码仓**；打包前会清掉不在哈希清单上的残留 |
 | 打包暂存 | `../.temp/plugin-stage/<id>/` | 7-Zip 从这里取文件（内容摊平后再压） |
 | 最终发布物 | `../.build/docs/<id>_<ver>.zip` + `plugins.json` | 宿主从清单读 |
 | 源码仓镜像清单 | `plugins.json`（本仓根） | 与 `.build/docs/plugins.json` 内容相同，入库 |

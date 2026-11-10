@@ -98,7 +98,7 @@
 - **远程优先、本地兜底**：点「下载」先按所选来源联网；联网失败而 `docs/<file>` 里有同一枚包
   ⇒ 用本地那份装（404 不该把用户卡死）。两条都没有才报"这一枚在当前来源还没有发布地址"。
 - **单枚 ZIP 上限 512 MiB**（宿主 `extensions::install::MAX_BYTES`）：超了直接拒收，
-  不是"慢一点"。今天四枚都在 1 MiB 量级。
+  不是"慢一点"。带随包引擎与模型的 `ocr` 比其余插件大一个量级，具体字节数一律读 `plugins.json`。
 - **`gitee` 是主源、`github` 由它推导**：两个镜像的 **owner 不同**（Gitee `qiuzongman` /
   GitHub `zongmanqiu`），推导时**主机名与 owner 一起换**。`released` 与 `gitee` 由人填。
 - **仓库名是复数 `RuPix-Plugins`，本地目录是单数 `RuPix-Plugin/`**；默认分支 `main`。
@@ -123,6 +123,7 @@
 - [ ] `build.ps1` 全绿（manifests / licenses / **secrets** / docs / 单测）
 - [ ] 冒烟两腿通过（见 [`testing.md`](testing.md) §3）
 - [ ] 真机四条通过（§4）
+- [ ] 随包外部可执行文件 / 模型已在 `THIRD-PARTY-NOTICES.md` 立节，且资产脚本逐个 SHA256 复核
 - [ ] ZIP 已上传到 `<id>_<version>` tag
 - [ ] `plugins.json` 里的下载地址可达（点一次 head 请求）
 - [ ] 本仓 `README` 的「发布插件」表与清单一致（`tools/check_docs.py` 第 4 查自动判）

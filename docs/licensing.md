@@ -49,7 +49,9 @@ SPDX 表达式）。理由：crate 是**静态编进 `<id>.exe`** 的，宽松�
 `THIRD-PARTY-NOTICES.md` 给它立一节（来源 / 版本 / 许可证 / 获取方式）——
 **那一节不存在 ⇒ 不随包**（AGENTS §三.7）。纯 Rust crate 依赖由门禁自动覆盖，不需要手工登记。
 
-现状：四枚插件的产物只有各自的 `<id>.exe` + `manifest.json`，**没有随包任何外部可执行文件**
+现状：**只有 `ocr` 是例外**——它随包带 `engine/` 子目录（一枚外部 CLI 与配套模型/字典），
+已在 [`../THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md) 的「随包外部可执行文件与模型」一节
+立节登记。其余插件的产物仍只有各自的 `<id>.exe` + `manifest.json`，没有随包外部可执行文件
 （条码解码是编进 `scan.exe` 的 `rxing`）。
 
 ## 5. 加依赖的判定顺序

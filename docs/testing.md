@@ -28,7 +28,7 @@ cargo test --release --manifest-path plugins/<id>/Cargo.toml --target-dir ../.te
 ## 3. 冒烟（不用开 GUI）
 
 ```powershell
-cd <宿主>\main
+cd <宿主>            # 宿主仓库根（main/ 那一层）
 set RUPIX_DECODERS_DIR=<工作区>\.build\decoders
 cargo run --release --example plugin_smoke -- ..\.temp\plugin-dist\<id> <一张真实图片>
 ```

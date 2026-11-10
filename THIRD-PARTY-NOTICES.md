@@ -1,6 +1,6 @@
 # 第三方组件许可与说明（RuPix-Plugin）
 
-> **读取日期 2026-11-07。版本与许可证一律实读 `cargo metadata`（各插件自己的 `Cargo.lock`），
+> **读取日期 2026-11-11。版本与许可证一律实读 `cargo metadata`（各插件自己的 `Cargo.lock`），
 > 不许凭记忆写。** 机器判据 = `python tools/check_licenses.py`（白名单在
 > `tools/check_licenses.py` 的 `ALLOWED` 里，加一个许可证家族必须同时改那里和本表）。
 
@@ -31,18 +31,50 @@
 | `checkup` | 命令型（图片体检） | `serde_json` 1、`windows` 0.62（只开 `Win32_Foundation` / `Win32_System_Memory`） |
 | `levels` | 命令型（色阶分析） | `serde_json` 1、`windows` 0.62（同上两个 feature）；**零新增 crate**——PNG 编码、CRC32、Adler-32 与 base64 均在本插件内实现 |
 | `scan` | 命令型（条码识别） | `serde_json` 1、`windows` 0.62（同上两个 feature）、**`rxing` 0.6**（ZXing 的 Rust 移植，`default-features = false`） |
+| `ocr` | 命令型（文字识别） | `serde_json` 1、`windows` 0.62（同上两个 feature）；**零新增 crate**——PNG 编码、CRC-32 / Adler-32 / stored deflate 均在本插件内实现。它另带**随包外部引擎与模型**，见下一节 |
 | `channels` | 编辑型（通道调色） | `serde_json` 1、`windows` 0.62（`Win32_Foundation` / `Win32_Security` / `Win32_System_Memory`）；**零新增 crate**——只比前三枚多开一个 `windows` feature |
 
 ★ **`scan` 为什么关默认特性**：rxing 的 `default` 含 `image` + `image_formats`，会拖进一整套
 图片解码栈（png / jpeg / avif / tiff…）。插件**不解文件**——像素是宿主解好给的（AGENTS §一.2
 「不依赖解码器」），关掉之后依赖树仍然有 **87 枚**包（`chrono-tz` 是 rxing 解析 DataMatrix/Aztec
-日期段的非可选依赖，砍不掉），`scan.exe` 因此是四枚插件里最大的一枚。这笔账写在这里，
+日期段的非可选依赖，砍不掉），`scan.exe` 因此是各插件 exe 里最大的一枚（整包最大的则是
+`ocr`，它另带随包引擎与模型，见下一节）。这笔账写在这里，
 是为了下次有人说"顺手加个解码库"时能看见代价。
 
-★ **不随包任何外部可执行文件**：今天四枚插件的产物只有各自的 `<id>.exe` +
-`manifest.json`（打包时附带 `README.md` / `LICENSE` 这类人读文件）。条码解码走的是**编进
-`scan.exe` 的 Rust crate**，不是随包一枚外部 CLI——所以本节不需要"外部工具"那一节。
-若将来真要随包，必须先在本文件立一节登记来源 / 版本 / 许可证 / 获取方式（AGENTS §三.7）。
+★ 「不随包任何外部可执行文件」这条曾经成立；**`ocr` 是唯一例外**，按 AGENTS §三.7
+在下一节登记。其余四枚的产物仍只有各自的 `<id>.exe` + `manifest.json`，条码解码走的是
+**编进 `scan.exe` 的 Rust crate**，不是随包一枚外部 CLI。
+
+### 随包外部可执行文件与模型（`ocr`）
+
+> 这一节不存在 ⇒ 不随包。来源 / 版本 / 许可证 / 获取方式四要素逐项写实；
+> 每个文件的 SHA256 由 `plugins/ocr/fetch_assets.py` 在构建前逐个复核，对不上即判红。
+
+**引擎**
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `engine/CurSeenOcr.exe`（16,798,720 B） |
+| 来源 | 已发布的 `OCR_0.3.0.zip` 中的 `OCR/ocr_tool/CurSeenOcr.exe`；ZIP SHA256 `17674a462fe162ed2363444359678600cc06c761539a85cf316fdee9688dd4aa` |
+| 上游与版本 | [RapidOcrOnnx](https://github.com/RapidAI/RapidOcrOnnx) 官方 CLI 源码副本，固定提交 `675e73fe4c8b9e1d0be558bb5959a1b37696ed90`，工程版本 1.2.2 |
+| 许可证 | Apache-2.0（上游）；其静态链接的 onnxruntime 为 MIT、OpenCV 为 Apache-2.0 |
+| 获取方式 | `python plugins/ocr/fetch_assets.py` 按固定 URL 下载并校验，缓存与产物都落在工作区 `.temp/`，**不进源码仓** |
+| 文件 SHA256 | `93a647539174950bb33f17c2002102fcc22116c1c0f9fe2616ce039c0567e5a2` |
+
+**模型与字典**：PP-OCRv4 系列，Apache-2.0。四个文件取自已发布的 `OCR_0.3.0.zip`
+（`OCR/ocr_tool/`），SHA256 与 CurSeen 的 `tools/ocr/upstream.lock.json` 版本锁逐字一致。
+
+| 文件 | 大小 (B) | SHA256 |
+|---|---:|---|
+| `ch_PP-OCRv4_det_mobile.onnx` | 4,745,517 | `d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9` |
+| `ch_ppocr_mobile_v2.0_cls_mobile.onnx` | 585,532 | `e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c` |
+| `ch_PP-OCRv4_rec_mobile.onnx` | 10,857,958 | `48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b` |
+| `ppocr_keys_v1.txt` | 26,249 | `28b2362ad4ab2dc38769aa72feb535e3a9ddb3fd2a7585a05920e6393b1dc7f7` |
+
+★ 模型与字典是**训练时配对**的：CTC 输出通道数由字典长度定死，改字典不能扩充字符集。
+随包只有**一套** rec + 一份字典（6623 字，其中 6270 个 CJK 统一汉字、94 个 ASCII
+可打印字符与常见符号）：简体中文、繁体中文、英文在同一批码位里，一次识别同时出，
+不做语言开关。日文 / 韩文 / 西里尔等模型不在包内；`ocr` 的 README 对用户如实列明这个边界。
 
 ## 三、许可证家族账（87 枚解析后包，按家族计数）
 

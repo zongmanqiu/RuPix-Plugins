@@ -66,6 +66,30 @@
     "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/levels_0.1.7/levels_0.1.7.zip"
   },
   {
+    "id": "ocr",
+    "name": "OCR 文字识别",
+    "version": "0.1.0",
+    "protocol": 1,
+    "min_host": "0.1.0",
+    "kind": "command",
+    "description": "识别当前图片里的中文（简体/繁体）、英文、数字与常见符号，结果纯文本由宿主自动复制到剪贴板。引擎与模型全部随包，不联网、不上传图片；整图超过宿主 8 MP 上限时明确报错，不假装识别成功。日文、韩文等其它语言不在本版范围，边界见随包 README。",
+    "capabilities": [
+      "image.read",
+      "clipboard.write",
+      "settings.read",
+      "settings.write",
+      "process.spawn",
+      "file.write"
+    ],
+    "released": "2026-11-11",
+    "author": "RuPix",
+    "license": "MIT",
+    "file": "ocr_0.1.0.zip",
+    "size": 21068442,
+    "gitee": "https://gitee.com/qiuzongman/RuPix-Plugins/releases/download/ocr_0.1.0/ocr_0.1.0.zip",
+    "github": "https://github.com/zongmanqiu/RuPix-Plugins/releases/download/ocr_0.1.0/ocr_0.1.0.zip"
+  },
+  {
     "id": "scan",
     "name": "条码识别",
     "version": "0.1.0",
